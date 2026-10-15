@@ -5,7 +5,7 @@ Scripts que preparam um Ubuntu (WSL2) para desenvolver o CodatOS. As ferramentas
 | Script | Executa como | O que faz |
 |---|---|---|
 | `setup-root.sh <usuario>` | root | Pacotes base e git, dependências do Tauri para Linux, clang/lld (cross-compilação Windows), Node.js 24 (NodeSource), pnpm, Docker Engine + Compose (repositório oficial; usa os pacotes do Ubuntu se a Docker ainda não publicar a versão) e coloca o usuário no grupo `docker` |
-| `setup-user.sh` | seu usuário | rustup + Rust stable, alvos `wasm32-unknown-unknown` e `x86_64-pc-windows-msvc`, preferências do git (`init.defaultBranch=main`, `core.autocrlf=input`) |
+| `setup-user.sh` | seu usuário | rustup + Rust stable, alvos `wasm32-unknown-unknown` e `x86_64-pc-windows-msvc`, ferramentas do M0 com versões fixadas (Trunk, `tauri-cli`, `cargo-xwin`, `cargo-deny`, `just`), preferências do git (`init.defaultBranch=main`, `core.autocrlf=input`) |
 | `verify.sh` | seu usuário | Mostra versões, testa o Docker sem sudo e compila um "hello world" nativo e em wasm32 |
 
 ## Como rodar (PowerShell, na raiz do repositório)

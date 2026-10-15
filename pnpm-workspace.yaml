@@ -1,0 +1,4 @@
+# Workspace pnpm (ADR-0001). No M0 só a UI usa (Tailwind CSS 4);
+# apps/cloud e apps/site entram nos marcos deles.
+packages:
+  - apps/ui

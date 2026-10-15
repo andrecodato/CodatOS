@@ -1,0 +1,9 @@
+{
+  "name": "codatos",
+  "private": true,
+  "license": "MIT",
+  "packageManager": "pnpm@12.11.0",
+  "engines": {
+    "node": ">=24"
+  }
+}

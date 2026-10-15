@@ -1,0 +1,16 @@
+[package]
+name = "codatos-core"
+description = "Núcleo local do CodatOS: API em 127.0.0.1, eventos e agendador"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+codatos-protocol.workspace = true
+
+[lints]
+workspace = true
