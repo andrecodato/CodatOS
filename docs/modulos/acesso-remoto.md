@@ -46,6 +46,14 @@ No modo remoto o PC mantém **uma conexão de saída** com o relay: nenhuma port
 | SFTP através do PC | Poderia | Bytes cifrados pelo relay, nunca armazenados |
 | Wake-on-LAN (acordar o PC) | Poderia | Requer outro dispositivo CodatOS ligado na mesma rede |
 
+**Níveis por aparelho (decidido em 2026-10-15, [Q-23](../10-perguntas-em-aberto.md#acesso-remoto)):** cada aparelho pareado recebe um nível, alterável no PC a qualquer momento.
+
+| Nível | O que permite |
+|---|---|
+| Ver | Dashboard, métricas, financeiro e tarefas, só leitura |
+| Controlar (padrão) | Ver + criar tarefa/transação, iniciar/parar containers e WSL, bloquear/suspender/reiniciar/desligar (com biometria) |
+| Total | Controlar + terminal do PC e SSH através do PC (biometria, aviso no PC e sessão com tempo limite) |
+
 ## Regras de negócio
 
 - O acesso remoto é desligado por padrão e ligado **por dispositivo**.
@@ -60,6 +68,6 @@ No modo remoto o PC mantém **uma conexão de saída** com o relay: nenhuma port
 
 ## Perguntas em aberto
 
-- O que o celular deve poder fazer? → [Q-23](../10-perguntas-em-aberto.md#acesso-remoto)
+- ✅ Três níveis por aparelho (Ver, Controlar, Total) → [Q-23](../10-perguntas-em-aberto.md#acesso-remoto)
 - PWA basta ou app nativo? → [Q-24](../10-perguntas-em-aberto.md#acesso-remoto)
 - Modo LAN gratuito? → [Q-25](../10-perguntas-em-aberto.md#acesso-remoto)

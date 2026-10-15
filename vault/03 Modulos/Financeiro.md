@@ -14,7 +14,7 @@ Contas, transações, importação OFX/CSV, categorias, metas, visão geral do m
 - Dinheiro em **centavos inteiros**.
 - Dedupe na importação OFX (hash de data+valor+descrição+id do banco).
 - Modo privacidade (R$ •••••) é essencial no celular.
-- Sincronizar ou não? (Q-07) — proposta: só no PC; celular lê ao vivo pelo [[Relay]].
+- ✅ Q-07: só no PC (celular lê ao vivo pelo [[Relay]]), gravado como item de cofre para sync futuro; export cifrado e CSV/OFX para backup.
 
 ## Pesquisa
 - [[Open Finance Brasil]]

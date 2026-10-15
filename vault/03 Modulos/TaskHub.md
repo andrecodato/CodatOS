@@ -32,7 +32,7 @@ Interface `TaskProvider`: Local · GitHub Projects · (Todoist, MS To Do, GitHub
 - Tarefas sem precisar de Docker/Postgres → [[Local-first]].
 
 ## Mapeamento
-- Workspace → [[Tenant]] · Áreas → campo **ou** tenant? (Q-34)
+- Workspace → [[Tenant]] · Áreas → campo (Q-34 ✅)
 - SyncConnection/ExternalMapping → provedor GitHub + mapeamentos
 
 ## Em aberto
@@ -40,6 +40,6 @@ Interface `TaskProvider`: Local · GitHub Projects · (Todoist, MS To Do, GitHub
 - [x] Q-33 → pasta fora do repositório
 - [x] Q-31 → UI em Leptos ([[Leptos vs alternativas]])
 - [ ] Q-05 sync E2E entre dispositivos
-- [ ] Q-34 Área = campo ou tenant?
+- [x] Q-34 → Área é campo
 
 [[Perguntas em aberto]] · [[Dashboard]] (widget Tarefas)

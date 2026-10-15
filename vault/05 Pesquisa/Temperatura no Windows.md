@@ -1,6 +1,6 @@
 ---
 tags: [pesquisa]
-status: aberta
+status: decidida
 relacionado: Q-13
 ---
 # Temperatura (e watts) no Windows
@@ -24,6 +24,6 @@ relacionado: Q-13
 2. **Integrar com LHM instalado pelo usuário:** ler o JSON do servidor web dele. Simples, sem driver nosso.
 3. **Helper privilegiado próprio** (`codat-helper`) usando PawnIO: melhor UX, mais responsabilidade de segurança.
 
-**Inclinação:** 1 + 2 no M1; avaliar 3 depois.
+**Decidido (Q-13, 2026-10-15):** 1 + 2 no M1; 3 só depois da 1.0, se houver demanda.
 
 Ver [[Monitor do sistema]] · [[Coletor]]

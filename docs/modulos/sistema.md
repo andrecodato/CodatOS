@@ -78,7 +78,7 @@ O Windows não expõe temperatura de CPU nem potência de forma confiável sem d
 1. **Sem privilégio (padrão)** — mostrar o que existe: GPU via NVML, zonas térmicas ACPI quando disponíveis; os demais campos aparecem como "indisponível — ativar sensores avançados".
 2. **Sensores avançados (opt-in)** — integrar com o **LibreHardwareMonitor** (que usa o driver PawnIO em vez do antigo WinRing0, hoje bloqueado pelo Defender), lendo do servidor web/WMI dele, ou instalar um *helper* privilegiado mínimo do CodatOS.
 
-Decisão pendente: [Q-13](../10-perguntas-em-aberto.md#sistema). Pesquisa no vault: `vault/05 Pesquisa/Temperatura no Windows.md`.
+**Decidido em 2026-10-15 ([Q-13](../10-perguntas-em-aberto.md#sistema)):** opção 1 por padrão + leitura do LibreHardwareMonitor quando ele estiver rodando (servidor web local, `http://127.0.0.1:8085/data.json`). Sem o LHM, o widget mostra "temperatura indisponível" com um link de como ativar. Nenhum driver ou serviço privilegiado próprio na 1.0. Pesquisa no vault: `vault/05 Pesquisa/Temperatura no Windows.md`.
 
 ### Detalhes de implementação do WSL
 
@@ -102,5 +102,5 @@ Decisão pendente: [Q-13](../10-perguntas-em-aberto.md#sistema). Pesquisa no vau
 
 ## Perguntas em aberto
 
-- Temperatura no Windows: aceitar helper/driver opcional? → [Q-13](../10-perguntas-em-aberto.md#sistema)
+- ✅ Temperatura no Windows: LibreHardwareMonitor, sem driver próprio → [Q-13](../10-perguntas-em-aberto.md#sistema)
 - Até onde vai o controle (desligar PC, matar processos)? → [Q-14](../10-perguntas-em-aberto.md#sistema)

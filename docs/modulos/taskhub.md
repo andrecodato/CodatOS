@@ -35,7 +35,7 @@
 | TaskHub | CodatOS |
 |---|---|
 | Workspace + membros (OWNER/MEMBER) | [Tenant](multitenancy.md) + membros e grupos |
-| Área (Estágio/Faculdade/Pessoal) | Campo da tarefa — ou tenant? ([Q-34](../10-perguntas-em-aberto.md#taskhub)) |
+| Área (Estágio/Faculdade/Pessoal) | Campo da tarefa dentro do tenant ([Q-34](../10-perguntas-em-aberto.md#taskhub)) |
 | FieldDefinition / FieldOption | Campos personalizados por tenant |
 | Project | Projeto de tarefas (vinculável a um repositório local — [RF-PROJ-006](projetos.md#requisitos-funcionais)) |
 | Task | Tarefa |
@@ -107,4 +107,4 @@ Abas **Minhas tarefas · Projetos · Quadros** e botão **+ Nova tarefa**.
 - ✅ Refazer em Rust, sem ponte → [Q-04](../10-perguntas-em-aberto.md#taskhub)
 - ✅ Pasta `TaskHub/` fora do repositório → [Q-33](../10-perguntas-em-aberto.md#taskhub)
 - Tarefas sincronizam entre dispositivos (cifradas)? → [Q-05](../10-perguntas-em-aberto.md#taskhub)
-- "Área" vira tenant ou continua campo? → [Q-34](../10-perguntas-em-aberto.md#taskhub)
+- ✅ "Área" continua campo → [Q-34](../10-perguntas-em-aberto.md#taskhub)

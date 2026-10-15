@@ -16,8 +16,8 @@ aliases: [Free, Pro, Team, Self-host]
 **Self-host** do servidor: grátis (proposta, Q-17) — reforça a confiança no open source (modelo Bitwarden/Vaultwarden).
 
 ## Em aberto
-- Preço (Q-16)
-- Stripe (cartão + Pix) × Mercado Pago/Asaas × Paddle/Lemon Squeezy (merchant of record)
+- Preço (perto do M4)
+- ✅ Provedor: Stripe, cartão + Pix (Q-16, 2026-10-15)
 - Trial de 14 dias?
 
 📄 `docs/modulos/contas-e-sync.md#planos-proposta` · [[Contas e sync]]
