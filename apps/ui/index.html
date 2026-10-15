@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CodatOS</title>
+    <!-- Recursos WASM que o Rust ≥ 1.87 liga por padrão; o wasm-opt precisa saber deles. -->
+    <link
+      data-trunk
+      rel="rust"
+      data-wasm-opt="z"
+      data-wasm-opt-params="--enable-bulk-memory --enable-nontrapping-float-to-int --enable-sign-ext --enable-mutable-globals --enable-reference-types --enable-multivalue"
+    />
+    <style>
+      :root { color-scheme: dark; }
+      html, body { margin: 0; height: 100%; background: #0A0F1E; color: #E6EAF2;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    </style>
+  </head>
+  <body></body>
+</html>

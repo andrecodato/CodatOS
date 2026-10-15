@@ -1,0 +1,15 @@
+[build]
+target = "index.html"
+dist = "dist"
+
+[serve]
+addresses = ["127.0.0.1"]
+port = 1420
+# O Tauri abre a própria janela; não abrir navegador.
+open = false
+
+[tools]
+# Fixados: o wasm-bindgen-cli precisa bater com o crate do Cargo.lock, e o wasm-opt
+# padrão do Trunk 0.21 (version_123) é antigo demais para o WASM do Rust ≥ 1.87.
+wasm_bindgen = "0.2.129"
+wasm_opt = "version_133"

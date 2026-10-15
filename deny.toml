@@ -7,6 +7,12 @@ all-features = true
 [advisories]
 version = 2
 yanked = "deny"
+# Só avisos de "sem manutenção", transitivos e sem versão alternativa. Rever a cada
+# atualização de Leptos/Tauri e remover quando sumirem do Cargo.lock.
+ignore = [
+  { id = "RUSTSEC-2024-0436", reason = "paste: macro de build usada pelo Leptos 0.8" },
+  { id = "RUSTSEC-2024-0370", reason = "proc-macro-error: via gtk-rs 0.18, usado pelo Tauri no Linux" },
+]
 
 [licenses]
 version = 2
