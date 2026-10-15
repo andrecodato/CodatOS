@@ -29,7 +29,8 @@ flowchart LR
 ## M1 · Dashboard local
 
 - Coletores: CPU/RAM/GPU (NVML), discos, rede, WSL (estado, tamanho, ações), Docker (host + WSL, deduplicado), projetos (raízes + VS Code/Cursor/JetBrains).
-- Clima (Open-Meteo). Grade de widgets com modo edição. Onboarding. Acesso pelo navegador local com token.- **Saída**: o autor usa o dashboard diariamente no Windows; RNF-DES-01/02 atendidos.
+- Clima (Open-Meteo). Grade de widgets com modo edição. Onboarding. Acesso pelo navegador local com token.
+- **Saída**: o autor usa o dashboard diariamente no Windows; RNF-DES-01/02 atendidos.
 
 ## M2 · Conexões
 
