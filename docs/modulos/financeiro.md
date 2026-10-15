@@ -36,12 +36,14 @@ Abas **Visão geral · Transações · Categorias · Metas** e seletor de mês.
 | RF-FIN-014 | Relatórios: evolução mensal (12 meses), comparativo por categoria. | Poderia | Futuro |
 | RF-FIN-015 | Multimoeda com conversão por cotação diária. | Poderia | Futuro |
 | RF-FIN-016 | Open Finance (agregadores como Pluggy/Belvo) para importar automaticamente. | Não agora | Futuro |
+| RF-FIN-017 | Backup: exportar todos os dados financeiros como arquivo cifrado com senha (restaurável) e como CSV/OFX; restaurar a partir do arquivo cifrado. | Deve | M3 |
 
 ## Regras de negócio
 
 - **Armazenamento**: banco local (SQLite cifrado — ver [Segurança](../04-seguranca.md#7-segurança-local)). O servidor nunca recebe dados financeiros em claro.
 - **Acesso remoto**: o celular vê o financeiro **lendo do PC** pelo relay, sem passar pela nuvem como armazenamento.
-- **Sincronização entre dispositivos**: desligada por padrão. Se habilitada no futuro, seria cifrada de ponta a ponta como qualquer item do cofre — decisão pendente na [Q-07](../10-perguntas-em-aberto.md#financeiro).
+- **Sincronização entre dispositivos**: desligada por padrão. Contas e transações são gravadas como itens de cofre desde o M3, para o sync cifrado de ponta a ponta poder ser ligado depois sem migração ([Q-07](../10-perguntas-em-aberto.md#financeiro), decidido em 2026-10-15).
+- **Backup**: o usuário exporta os dados financeiros como arquivo cifrado com senha (restaurável no CodatOS) ou como CSV/OFX em texto aberto, com aviso de que esse formato não é protegido.
 - Valores monetários armazenados como inteiros em centavos (sem ponto flutuante).
 - Tenant: cada tenant tem suas próprias contas e transações (ex.: "Pessoal" × "Empresa").
 
@@ -54,5 +56,5 @@ Abas **Visão geral · Transações · Categorias · Metas** e seletor de mês.
 ## Perguntas em aberto
 
 - De onde vêm os dados (manual, OFX/CSV, Open Finance, app atual)? → [Q-06](../10-perguntas-em-aberto.md#financeiro)
-- Os dados financeiros podem sincronizar (cifrados) ou ficam só no PC? → [Q-07](../10-perguntas-em-aberto.md#financeiro)
+- ✅ Só no PC, modelado para sync futuro, com export para backup → [Q-07](../10-perguntas-em-aberto.md#financeiro)
 - Cartão de crédito com faturas, investimentos, multimoeda? → [Q-08](../10-perguntas-em-aberto.md#financeiro)

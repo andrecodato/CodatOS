@@ -113,4 +113,4 @@ function frame(now: number) {
 
 ## Hospedagem
 
-Site estático em Cloudflare Pages ou GitHub Pages, deploy automático a cada push em `main` que toque `apps/site/`. Domínio a definir ([Q-01](10-perguntas-em-aberto.md#produto-e-marca)).
+Site estático em Cloudflare Pages ou GitHub Pages, deploy automático a cada push em `main` que toque `apps/site/`. Domínio provisório `codatos.com`, ainda não comprado ([Q-01](10-perguntas-em-aberto.md#produto-e-marca)).

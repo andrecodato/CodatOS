@@ -84,7 +84,7 @@ Cada item sincronizável (um host, uma identidade, um layout…) é serializado 
 
 **Desbloqueio rápido** — opcional: a user key é guardada no keychain do SO protegida por Windows Hello/Touch ID/senha da sessão.
 
-**Recuperação** — com a chave de recuperação, o cliente decifra a user key e define nova senha mestra. Sem ela, só resta redefinir a conta (dados da nuvem apagados; dados locais intactos).
+**Recuperação** — com a chave de recuperação, o cliente decifra a user key e define nova senha mestra. Um **dispositivo confiável** ainda desbloqueado (que já tem a user key) também pode definir uma nova senha mestra. Sem nenhum dos dois, só resta redefinir a conta (dados da nuvem apagados; dados locais intactos). O servidor nunca guarda cópia da user key em claro ([Q-19](10-perguntas-em-aberto.md#contas-sync-e-planos)); contato de emergência fica para depois da 1.0.
 
 **Compartilhar com um tenant** — o admin cria a chave do cofre do tenant e a **sela** (X25519 sealed box) para a chave pública de cada membro. Para evitar que um servidor malicioso troque a chave pública de um convidado, a UI mostra a **impressão digital** da chave para verificação opcional fora do app (transparência de chaves fica para o futuro).
 

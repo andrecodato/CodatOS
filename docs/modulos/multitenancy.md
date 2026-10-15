@@ -41,7 +41,7 @@ Separar contextos (ex.: **Pessoal**, **Trabalho**, **Estudos**) e permitir colab
 | RF-TEN-009 | Proteções: sempre ≥ 1 administrador; impedir remover o último admin; transferir a propriedade do tenant. | Deve | M6 |
 | RF-TEN-010 | Cofres compartilhados com **rotação de chave** ao remover um membro (itens re-cifrados de forma gradual). | Deve | M6 |
 | RF-TEN-011 | Log de auditoria do tenant (ações administrativas, convites, acessos a recursos compartilhados), retenção de 90 dias, filtrável. | Deveria | M6 |
-| RF-TEN-012 | Membros "gerenciados" (contas criadas pelo admin, ex.: família) — depende da [Q-20](../10-perguntas-em-aberto.md#multitenancy). | Poderia | Futuro |
+| RF-TEN-012 | Membros "gerenciados" (contas criadas pelo admin, ex.: família) — fora da 1.0 ([Q-20](../10-perguntas-em-aberto.md#multitenancy)). | Poderia | Futuro |
 | RF-TEN-013 | SSO (OIDC/SAML) e provisionamento SCIM. | Não agora | Futuro |
 
 ## Catálogo de permissões
@@ -91,6 +91,6 @@ Separar contextos (ex.: **Pessoal**, **Trabalho**, **Estudos**) e permitir colab
 
 ## Perguntas em aberto
 
-- O que é um tenant para você e quem são os sub users? → [Q-20](../10-perguntas-em-aberto.md#multitenancy)
+- ✅ Tenant = contextos e empresas; sub user com conta própria → [Q-20](../10-perguntas-em-aberto.md#multitenancy)
 - Multitenancy só no plano pago? Cobrança por assento? → [Q-21](../10-perguntas-em-aberto.md#multitenancy)
 - Permissões por recurso já na 1.0? → [Q-22](../10-perguntas-em-aberto.md#multitenancy)

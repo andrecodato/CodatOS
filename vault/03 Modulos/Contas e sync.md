@@ -17,4 +17,4 @@ Login/cadastro (mockup: abas Entrar/Cadastrar, GitHub), senha mestra, 2FA, chave
 - Sync exige plano pago; dados na nuvem retidos 90 dias após o fim.
 
 ## O que sincroniza
-Conexões ✅ · Configurações ✅ · Painel ✅ · TaskHub ⏳ (Q-05) · Tenants ✅ · Financeiro ❌ (Q-07) · Arquivos ❌ nunca
+Conexões ✅ · Configurações ✅ · Painel ✅ · TaskHub ⏳ (Q-05) · Tenants ✅ · Financeiro ❌ por padrão (Q-07 ✅) · Arquivos ❌ nunca

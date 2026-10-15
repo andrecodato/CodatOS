@@ -17,5 +17,5 @@ Tela "Tenancy e Permissões" (mockup): abas Tenants · Usuários · Grupos · Pe
 - Postgres RLS como segunda barreira.
 
 ## Em aberto
-- O que é tenant e quem são os sub users (Q-20)
+- ✅ Q-20: tenant = contextos e empresas; sub user com conta própria
 - Só no Team? Por assento? (Q-21)

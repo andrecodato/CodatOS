@@ -11,7 +11,6 @@ Espaço isolado — **Pessoal**, **Trabalho**, **Estudos** (exemplos do mockup) 
 - **Plano Team**: tenants na nuvem com membros (sub users), [[Grupos e permissões]] e [[Cofre|cofres]] compartilhados.
 
 ## Dúvidas
-- Tenant serve para contextos pessoais, clientes, família — ou todos? (Q-20)
-- Sub user tem conta própria ou é perfil gerenciado?
+- ✅ Q-20: contextos e empresas/clientes; sub user com conta própria. Perfis gerenciados (família) depois da 1.0.
 
 Módulo: [[Multitenancy]] · 📄 `docs/modulos/multitenancy.md`

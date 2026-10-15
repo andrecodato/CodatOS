@@ -54,7 +54,7 @@ Permitir que o usuário crie uma conta, assine o plano pago e **sincronize suas 
 | Preferências do painel | Dashboards, layouts, configurações de widgets | ✅ cifrado |
 | Projetos do TaskHub | Projetos e tarefas | ⏳ cifrado, se aprovado na [Q-05](../10-perguntas-em-aberto.md#taskhub) |
 | Tenants e permissões | Tenants, membros, grupos, permissões | ✅ nativo do servidor (metadados necessários para autorização) |
-| Financeiro | Contas e transações | ❌ por padrão — ver [Q-07](../10-perguntas-em-aberto.md#financeiro) |
+| Financeiro | Contas e transações | ❌ por padrão; pode ser ligado no futuro — [Q-07](../10-perguntas-em-aberto.md#financeiro) |
 | Arquivos, logs, gravações, histórico de métricas | — | ❌ nunca (R-01) |
 
 ### Planos (proposta)
@@ -89,7 +89,7 @@ Permitir que o usuário crie uma conta, assine o plano pago e **sincronize suas 
 
 ## Perguntas em aberto
 
-- Preço, planos e provedor de pagamento → [Q-16](../10-perguntas-em-aberto.md#contas-sync-e-planos)
+- ✅ Provedor: Stripe; preço perto do M4 → [Q-16](../10-perguntas-em-aberto.md#contas-sync-e-planos)
 - Self-host gratuito? → [Q-17](../10-perguntas-em-aberto.md#contas-sync-e-planos)
 - GitHub + senha mestra separada; passkeys → [Q-18](../10-perguntas-em-aberto.md#contas-sync-e-planos)
-- Política de recuperação → [Q-19](../10-perguntas-em-aberto.md#contas-sync-e-planos)
+- ✅ Recuperação: chave de recuperação + dispositivo confiável, sem cópia da chave no servidor → [Q-19](../10-perguntas-em-aberto.md#contas-sync-e-planos)

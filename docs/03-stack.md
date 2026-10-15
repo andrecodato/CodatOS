@@ -53,7 +53,7 @@ As versões exatas são fixadas no início do M0 (última estável). Abaixo, a e
 | Validação | **zod** (via nestjs-zod) | Esquemas compartilháveis com o front web |
 | Auth | **argon2**, **otplib** (TOTP), **@simplewebauthn/server** (passkeys), OAuth GitHub | Padrões consolidados |
 | WebSocket | **@nestjs/websockets** com adapter `ws` | Relay e eventos de sync |
-| Pagamentos | **Stripe** (cartão + Pix) — a confirmar na [Q-16](10-perguntas-em-aberto.md#contas-sync-e-planos) | Assinaturas, portal do cliente, webhooks |
+| Pagamentos | **Stripe** (cartão + Pix) — decidido na [Q-16](10-perguntas-em-aberto.md#contas-sync-e-planos) | Assinaturas, portal do cliente, webhooks |
 | E-mail | Provedor transacional (Resend/Postmark/SES) | Verificação, convites, alertas |
 | Observabilidade | **pino**, **OpenTelemetry**, Prometheus | Logs/métricas sem dados sensíveis |
 | Docs da API | OpenAPI (Swagger do Nest) | Gera o cliente Rust da nuvem |

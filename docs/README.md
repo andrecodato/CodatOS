@@ -48,5 +48,5 @@ Registradas como ADRs (Architecture Decision Records) em [adr/](adr/README.md).
 - **Status de documento**: Rascunho → Em revisão → Aprovado.
 - Toda mudança relevante de arquitetura vira um ADR; todo requisito novo ganha um ID e entra na tabela do módulo.
 - Idioma: documentação em **pt-BR**; código, commits e nomes técnicos em **inglês** (ver [CONTRIBUTING](../CONTRIBUTING.md)).
-- Nome do produto: **CodatOS** (definido). Ainda provisórios: domínio **codatos.dev** e porta local **47800** (ver [Q-01](10-perguntas-em-aberto.md#produto-e-marca)).
+- Nome do produto: **CodatOS** (definido). Ainda provisórios: domínio **codatos.com** (não comprado) e porta local **47800** (ver [Q-01](10-perguntas-em-aberto.md#produto-e-marca)).
 - Licença: **MIT** ([LICENSE](../LICENSE)).
