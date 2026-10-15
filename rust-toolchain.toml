@@ -1,0 +1,8 @@
+# Toolchain fixado para todo o workspace (rustup instala sozinho no primeiro `cargo`).
+# Atualizar junto com o `rust-version` do Cargo.toml.
+[toolchain]
+channel = "1.99.0"
+profile = "minimal"
+components = ["rustfmt", "clippy"]
+# wasm32: UI em Leptos · x86_64-pc-windows-msvc: app Windows via cargo-xwin
+targets = ["wasm32-unknown-unknown", "x86_64-pc-windows-msvc"]

@@ -1,0 +1,45 @@
+[workspace]
+resolver = "3"
+members = [
+  "apps/desktop/src-tauri",
+  "apps/ui",
+  "crates/core",
+  "crates/protocol",
+]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.99"
+license = "MIT"
+repository = "https://github.com/andrecodato/CodatOS"
+authors = ["André Codato"]
+publish = false
+
+# Versões fixadas em um lugar só. Cada PR do M0 acrescenta aqui o que passa a usar
+# (Axum no núcleo, Leptos na UI, Tauri no desktop) e os crates herdam com
+# `dep = { workspace = true }`.
+[workspace.dependencies]
+codatos-core = { path = "crates/core" }
+codatos-protocol = { path = "crates/protocol" }
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+
+# Bundle WASM da UI pequeno (RNF-DES-05: < 2 MB gzip).
+[profile.wasm-release]
+inherits = "release"
+opt-level = "z"
+panic = "abort"
