@@ -1,0 +1,52 @@
+# ── Rust ──────────────────────────────────────────
+/target/
+**/target/
+
+# ── Node / front-end ──────────────────────────────
+node_modules/
+.pnpm-store/
+dist/
+.next/
+.astro/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# ── Tauri ─────────────────────────────────────────
+apps/desktop/src-tauri/gen/
+
+# ── Segredos (nunca versionar) ────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+
+# ── Logs e temporários ────────────────────────────
+*.log
+*.tmp
+
+# ── Sistemas operacionais ─────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editores ──────────────────────────────────────
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# ── Referências locais (não fazem parte do repo) ──
+# TaskHub: projeto anterior com .git próprio, usado só como referência
+# funcional para o módulo de tarefas (será refeito em Rust).
+/TaskHub/
+
+# ── Obsidian (estado pessoal de cada pessoa) ──────
+vault/.obsidian/workspace.json
+vault/.obsidian/workspace-mobile.json
+vault/.obsidian/cache
+vault/.trash/

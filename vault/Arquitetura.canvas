@@ -1,0 +1,36 @@
+{
+	"nodes":[
+		{"id":"browser","type":"text","x":200,"y":-260,"width":240,"height":90,"text":"### Navegador\nlocal ou LAN (pareado)"},
+		{"id":"g-pc","type":"group","x":-20,"y":-60,"width":660,"height":580,"label":"Seu computador","color":"5"},
+		{"id":"shell","type":"text","x":20,"y":0,"width":250,"height":110,"text":"### Shell Tauri 2\njanela · bandeja · autostart · updater\n[[App desktop]]"},
+		{"id":"ui","type":"text","x":370,"y":0,"width":250,"height":110,"text":"### UI Leptos (WASM)\nmesmo bundle no desktop, navegador e PWA\n[[Leptos vs alternativas]]"},
+		{"id":"core","type":"text","x":20,"y":170,"width":600,"height":130,"color":"4","text":"### Núcleo `codat-core` (Rust)\nAPI local HTTP + WS em 127.0.0.1:47800 · conexões SSH/SFTP · cofre · sync · cliente do relay\n[[Agente local]] · [[Cofre]]"},
+		{"id":"collectors","type":"text","x":20,"y":360,"width":280,"height":120,"text":"### Coletores\nCPU · RAM · GPU · discos · WSL · Docker · git\n[[Coletor]]"},
+		{"id":"db","type":"text","x":340,"y":360,"width":280,"height":120,"text":"### SQLite cifrado\nSQLCipher + segredos com 2ª camada\n[[Local-first]]"},
+		{"id":"hosts","type":"text","x":-400,"y":0,"width":280,"height":90,"text":"### Servidores SSH/SFTP\n[[Conexões]]"},
+		{"id":"ext","type":"text","x":-400,"y":170,"width":280,"height":90,"text":"### Clima · Calendários\n[[Integrações]]"},
+		{"id":"os","type":"text","x":-400,"y":360,"width":280,"height":120,"text":"### SO · WSL · Docker · Git\n[[Monitor do sistema]] · [[Projetos]]"},
+		{"id":"g-cloud","type":"group","x":840,"y":-60,"width":660,"height":580,"label":"Nuvem (opcional)","color":"6"},
+		{"id":"api","type":"text","x":880,"y":0,"width":280,"height":110,"text":"### API NestJS\nauth · tenants · grupos · sync · billing\n[[Contas e sync]]"},
+		{"id":"pg","type":"text","x":1180,"y":0,"width":280,"height":110,"text":"### PostgreSQL\nitens cifrados · RLS por tenant\n[[Multitenancy]]"},
+		{"id":"zk","type":"text","x":880,"y":170,"width":580,"height":130,"color":"1","text":"### Só vê texto cifrado\nE-mail, tenants, grupos, contagens. Nunca hosts, senhas, chaves, configs, finanças ou arquivos.\n[[Zero-knowledge]] · [[Hash vs criptografia]]"},
+		{"id":"relay","type":"text","x":880,"y":360,"width":280,"height":120,"text":"### Relay WebSocket\npresença + túneis Noise E2E\n[[Relay]]"},
+		{"id":"kv","type":"text","x":1180,"y":360,"width":280,"height":120,"text":"### Valkey\npresença · pub/sub · rate limit"},
+		{"id":"phone","type":"text","x":880,"y":600,"width":280,"height":90,"text":"### Celular (PWA)\n[[Acesso remoto]]"}
+	],
+	"edges":[
+		{"id":"e-shell-ui","fromNode":"shell","fromSide":"right","toNode":"ui","toSide":"left","label":"hospeda"},
+		{"id":"e-ui-core","fromNode":"ui","fromSide":"bottom","toNode":"core","toSide":"top","fromEnd":"arrow","label":"WS 127.0.0.1"},
+		{"id":"e-browser-core","fromNode":"browser","fromSide":"bottom","toNode":"core","toSide":"top","fromEnd":"arrow","label":"HTTP/WS local ou LAN"},
+		{"id":"e-core-col","fromNode":"core","fromSide":"bottom","toNode":"collectors","toSide":"top"},
+		{"id":"e-core-db","fromNode":"core","fromSide":"bottom","toNode":"db","toSide":"top"},
+		{"id":"e-col-os","fromNode":"collectors","fromSide":"left","toNode":"os","toSide":"right","label":"coleta"},
+		{"id":"e-core-hosts","fromNode":"core","fromSide":"left","toNode":"hosts","toSide":"right","label":"SSH"},
+		{"id":"e-core-ext","fromNode":"core","fromSide":"left","toNode":"ext","toSide":"right","label":"HTTPS direto"},
+		{"id":"e-core-api","fromNode":"core","fromSide":"right","toNode":"api","toSide":"left","fromEnd":"arrow","label":"HTTPS · itens cifrados"},
+		{"id":"e-core-relay","fromNode":"core","fromSide":"right","toNode":"relay","toSide":"left","fromEnd":"arrow","color":"4","label":"WSS de saída · Noise"},
+		{"id":"e-api-pg","fromNode":"api","fromSide":"right","toNode":"pg","toSide":"left"},
+		{"id":"e-relay-kv","fromNode":"relay","fromSide":"right","toNode":"kv","toSide":"left"},
+		{"id":"e-phone-relay","fromNode":"phone","fromSide":"top","toNode":"relay","toSide":"bottom","fromEnd":"arrow","label":"WSS · Noise E2E"}
+	]
+}

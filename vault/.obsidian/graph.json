@@ -1,0 +1,14 @@
+{
+  "colorGroups": [
+    { "query": "path:\"01 Mapas\"", "color": { "a": 1, "rgb": 8150271 } },
+    { "query": "path:\"02 Conceitos\"", "color": { "a": 1, "rgb": 3900150 } },
+    { "query": "path:\"03 Modulos\"", "color": { "a": 1, "rgb": 2278750 } },
+    { "query": "path:\"04 Decisoes\"", "color": { "a": 1, "rgb": 16007006 } },
+    { "query": "path:\"05 Pesquisa\"", "color": { "a": 1, "rgb": 16096779 } },
+    { "query": "path:\"06 Diario\"", "color": { "a": 1, "rgb": 440020 } }
+  ],
+  "showTags": false,
+  "showAttachments": false,
+  "showOrphans": true,
+  "search": "-path:\"99 Templates\""
+}

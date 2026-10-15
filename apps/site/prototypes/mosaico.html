@@ -1,0 +1,1063 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<meta name="description" content="Protótipo do hero do site do CodatOS com o mosaico interativo." />
+<title>CodatOS — protótipo do mosaico</title>
+<!--
+  Protótipo standalone do hero do site (docs/08-site.md → "Mosaico interativo").
+  Sem dependências e sem build: abra este arquivo direto no navegador.
+  Painel "Ajustes" (canto inferior direito) permite calibrar o efeito e copiar os parâmetros.
+-->
+<style>
+  :root {
+    --bg-app: #060A14;
+    --bg-base: #0A0F1E;
+    --bg-sidebar: #0B1122;
+    --bg-card: #0F1629;
+    --bg-elevated: #131B31;
+    --border: #1C2640;
+    --border-soft: rgb(148 163 184 / 0.10);
+    --text: #E6EAF2;
+    --text-muted: #8B95AD;
+    --text-subtle: #5C6680;
+    --primary: #3B82F6;
+    --accent: #7C5CFF;
+    --success: #22C55E;
+    --warning: #F59E0B;
+    --danger: #F43F5E;
+    --gradient-brand: linear-gradient(135deg, #7C5CFF 0%, #3B82F6 100%);
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Roboto, sans-serif;
+    --mono: "JetBrains Mono", "Cascadia Code", ui-monospace, SFMono-Regular, Consolas, monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg-app);
+    color: var(--text);
+    font-family: var(--font);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  a { color: inherit; text-decoration: none; }
+  svg { display: block; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; border-radius: 8px; }
+  .icon {
+    width: 18px; height: 18px; flex: none;
+    fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* ── Navbar ─────────────────────────────────────────── */
+  .nav {
+    position: fixed; inset: 0 0 auto 0; z-index: 20;
+    display: flex; align-items: center; gap: 28px;
+    height: 64px;
+    padding-inline: max(16px, calc((100% - 1180px) / 2));
+    background: rgb(6 10 20 / 0.55);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    backdrop-filter: blur(14px) saturate(140%);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; letter-spacing: -0.01em; font-size: 16px; }
+  .brand svg { width: 28px; height: 28px; }
+  .nav-links { display: flex; gap: 4px; flex: 1; font-size: 14px; color: var(--text-muted); }
+  .nav-links a { padding: 6px 12px; border-radius: 8px; transition: color .15s, background-color .15s; }
+  .nav-links a:hover { color: var(--text); background: rgb(255 255 255 / 0.04); }
+  .nav-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+  .gh-link {
+    display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px;
+    border-radius: 10px; color: var(--text-muted); font-size: 13px;
+    transition: color .15s, background-color .15s;
+  }
+  .gh-link:hover { color: var(--text); background: rgb(255 255 255 / 0.05); }
+  .gh-link .stars { font-family: var(--mono); font-size: 12px; }
+  .btn-sm {
+    display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px;
+    border-radius: 10px; font-size: 13.5px; font-weight: 600; color: #fff;
+    background: var(--gradient-brand);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14), 0 6px 20px -8px rgb(59 130 246 / 0.7);
+    transition: filter .15s, transform .15s var(--ease-out);
+  }
+  .btn-sm:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-sm .icon { width: 16px; height: 16px; }
+
+  /* ── Hero ───────────────────────────────────────────── */
+  .hero {
+    position: relative; isolation: isolate; overflow: hidden;
+    min-height: 100vh; min-height: 100svh;
+    padding: 128px 16px 0;
+    touch-action: manipulation;
+    cursor: crosshair;
+  }
+  .hero a, .hero button, .preview-wrap { cursor: pointer; }
+  .hero h1, .hero p { cursor: text; }
+  #mosaic { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; }
+  .veil {
+    position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(70% 50% at 50% 0%, rgb(59 130 246 / 0.16), transparent 70%),
+      radial-gradient(46% 34% at 50% 30%, rgb(6 10 20 / 0.72), rgb(6 10 20 / 0.30) 65%, transparent 100%),
+      linear-gradient(to bottom, rgb(6 10 20 / 0) 60%, var(--bg-app) 100%);
+  }
+  .hero-inner {
+    max-width: 1180px; margin: 0 auto;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+  }
+  /* mantém o texto legível quando a onda passa por baixo */
+  .lead, .also, .badges { text-shadow: 0 1px 2px rgb(6 10 20 / 0.9), 0 0 18px rgb(6 10 20 / 0.85); }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 5px 14px 5px 6px; border-radius: 999px;
+    font-size: 13px; color: #C7D2FE;
+    background: rgb(124 92 255 / 0.08);
+    border: 1px solid rgb(124 92 255 / 0.32);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    transition: border-color .2s, background-color .2s;
+  }
+  .pill:hover { border-color: rgb(124 92 255 / 0.6); background: rgb(124 92 255 / 0.14); }
+  .pill .tag {
+    padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; color: #fff;
+    background: var(--gradient-brand); white-space: nowrap;
+  }
+  .pill .short { display: none; }
+  .pill .icon { width: 14px; height: 14px; }
+
+  h1 {
+    margin: 22px 0 0;
+    font-size: clamp(2.5rem, 1.1rem + 5.4vw, 5.25rem);
+    line-height: 1.02; letter-spacing: -0.04em; font-weight: 700;
+    text-wrap: balance;
+  }
+  h1 .top {
+    background: linear-gradient(180deg, #FFFFFF 20%, #B6C0D6 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  h1 .grad {
+    background: linear-gradient(90deg, #93C5FD 0%, #3B82F6 45%, #8B7BFF 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .lead {
+    max-width: 640px; margin: 22px auto 0;
+    font-size: clamp(1rem, 0.94rem + 0.35vw, 1.2rem);
+    color: var(--text-muted); text-wrap: pretty;
+  }
+
+  .ctas { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    height: 50px; padding: 0 22px; border-radius: 12px;
+    font-size: 15px; font-weight: 600; white-space: nowrap;
+    transition: transform .2s var(--ease-out), box-shadow .2s, filter .2s, background-color .2s, border-color .2s;
+  }
+  .btn-primary {
+    color: #fff; background: var(--gradient-brand);
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.14),
+      0 12px 32px -10px rgb(59 130 246 / 0.75),
+      0 0 48px -12px rgb(124 92 255 / 0.65);
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px); filter: brightness(1.08);
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.2),
+      0 18px 40px -10px rgb(59 130 246 / 0.85),
+      0 0 64px -10px rgb(124 92 255 / 0.75);
+  }
+  .btn-secondary {
+    color: var(--text);
+    background: rgb(15 22 41 / 0.72);
+    border: 1px solid var(--border);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+  .btn-secondary:hover { transform: translateY(-2px); border-color: #2C3B60; background: rgb(19 27 49 / 0.9); }
+  .btn-secondary .count {
+    margin-left: 4px; padding-left: 12px; border-left: 1px solid var(--border);
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--text-muted);
+  }
+  .btn-secondary .count .icon { width: 13px; height: 13px; fill: currentColor; stroke: none; }
+
+  .also { margin: 14px 0 0; font-size: 13px; color: var(--text-subtle); }
+  .also a { color: var(--text-muted); border-bottom: 1px dotted var(--text-subtle); }
+  .also a:hover { color: var(--text); }
+
+  .badges {
+    list-style: none; padding: 0; margin: 30px 0 0;
+    display: flex; flex-wrap: wrap; gap: 10px 22px; justify-content: center;
+    font-size: 13.5px; color: var(--text-muted);
+  }
+  .badges li { display: inline-flex; align-items: center; gap: 8px; }
+  .badges .icon { width: 16px; height: 16px; color: #60A5FA; }
+
+  .hint {
+    margin: 26px 0 0; padding: 6px 14px; border-radius: 999px;
+    font-size: 12.5px; color: var(--text-muted);
+    background: rgb(11 17 34 / 0.7); border: 1px solid var(--border-soft);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    opacity: 0; transform: translateY(6px);
+    transition: opacity .6s, transform .6s var(--ease-out);
+    pointer-events: none; user-select: none;
+  }
+  .hint.show { opacity: 1; transform: none; }
+  .hint.gone { opacity: 0; transform: translateY(-4px); }
+
+  /* ── Prévia do produto ──────────────────────────────── */
+  .preview-wrap {
+    width: min(1080px, 100%); margin-top: 44px;
+    -webkit-mask-image: linear-gradient(to bottom, #000 52%, transparent 97%);
+    mask-image: linear-gradient(to bottom, #000 52%, transparent 97%);
+  }
+  .preview {
+    padding: 1px; border-radius: 16px;
+    background: linear-gradient(180deg, rgb(147 197 253 / 0.38), rgb(124 92 255 / 0.16) 30%, rgb(28 38 64 / 0.6));
+    box-shadow: 0 40px 120px -24px rgb(0 0 0 / 0.85), 0 0 160px -40px rgb(59 130 246 / 0.5);
+    transform: perspective(2200px) rotateX(16deg) scale(0.98);
+    transform-origin: 50% 0;
+    transition: transform .9s var(--ease-out);
+  }
+  .preview-wrap:hover .preview { transform: perspective(2200px) rotateX(5deg) scale(1); }
+  .window {
+    display: grid; grid-template-rows: 36px 1fr;
+    height: 470px; overflow: hidden; border-radius: 15px;
+    background: var(--bg-base); text-align: left;
+  }
+  .titlebar {
+    display: flex; align-items: center; gap: 8px; padding: 0 14px;
+    background: var(--bg-sidebar); border-bottom: 1px solid var(--border-soft);
+    font-size: 12px; color: var(--text-subtle);
+  }
+  .titlebar i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+  .titlebar i:nth-child(1) { background: #FF5F57; }
+  .titlebar i:nth-child(2) { background: #FEBC2E; }
+  .titlebar i:nth-child(3) { background: #28C840; }
+  .titlebar span { margin: 0 auto; transform: translateX(-24px); }
+  .app { display: grid; grid-template-columns: 196px 1fr; min-height: 0; }
+  .side {
+    display: flex; flex-direction: column; gap: 2px; padding: 14px 10px;
+    background: var(--bg-sidebar); border-right: 1px solid var(--border-soft);
+  }
+  .side .brand { font-size: 14px; padding: 2px 8px 14px; }
+  .side .brand svg { width: 22px; height: 22px; }
+  .si {
+    display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px;
+    border-radius: 8px; font-size: 13px; color: var(--text-muted);
+  }
+  .si .icon { width: 16px; height: 16px; }
+  .si.active { background: rgb(59 130 246 / 0.14); color: #fff; }
+  .si.active .icon { color: #60A5FA; }
+  .main { padding: 18px 20px; overflow: hidden; }
+  .greet h3 { margin: 0; font-size: 18px; font-weight: 650; letter-spacing: -0.01em; }
+  .greet p { margin: 2px 0 0; font-size: 12.5px; color: var(--text-muted); }
+  .cards { margin-top: 14px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .cards + .cards { margin-top: 12px; }
+  .card {
+    display: flex; flex-direction: column; min-height: 152px; padding: 14px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  }
+  .card.wide { grid-column: span 2; min-height: 132px; }
+  .card h4 { margin: 0; font-size: 12.5px; font-weight: 600; color: #C9D1E3; }
+  .metric { margin-top: 8px; font-size: 22px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .sub { font-size: 11.5px; color: var(--text-muted); }
+  .up { color: var(--success); }
+  .spark { margin-top: auto; width: 100%; height: 40px; }
+  .bar { height: 6px; margin-top: 10px; border-radius: 99px; background: #1A2440; overflow: hidden; }
+  .bar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #3B82F6, #60A5FA); }
+  .rows { margin-top: 10px; display: grid; gap: 7px; font-size: 11.5px; }
+  .row { display: flex; align-items: center; gap: 8px; color: #C9D1E3; }
+  .row .when { margin-left: auto; font-size: 10.5px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .ring-row { margin-top: auto; display: flex; justify-content: space-between; gap: 4px; }
+  .ring { position: relative; display: grid; justify-items: center; gap: 4px; font-size: 10.5px; color: var(--text-muted); }
+  .ring svg { width: 52px; height: 52px; transform: rotate(-90deg); }
+  .ring b { position: absolute; top: 17px; font-size: 11px; font-weight: 600; color: var(--text); }
+  .disk { margin-top: 9px; font-size: 11px; color: var(--text-muted); }
+  .disk div:first-child { display: flex; justify-content: space-between; }
+
+  /* ── Painel de ajustes ──────────────────────────────── */
+  .tweaks { position: fixed; right: 16px; bottom: 16px; z-index: 30; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  .tweaks-toggle {
+    display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px;
+    border-radius: 999px; border: 1px solid var(--border); cursor: pointer;
+    background: rgb(15 22 41 / 0.85); color: var(--text-muted); font-size: 13px;
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.8);
+  }
+  .tweaks-toggle:hover, .tweaks-toggle[aria-expanded="true"] { color: var(--text); border-color: #2C3B60; }
+  .tweaks-toggle .icon { width: 16px; height: 16px; }
+  .tweaks-panel {
+    width: min(300px, calc(100vw - 32px)); padding: 14px;
+    border-radius: 14px; border: 1px solid var(--border);
+    background: rgb(11 17 34 / 0.94);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.9);
+    font-size: 12.5px;
+  }
+  .tweaks-panel[hidden] { display: none; }
+  .tw-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+  .tw-head strong { font-size: 13px; font-weight: 600; }
+  .tw-stats { font-family: var(--mono); font-size: 11px; color: var(--text-subtle); text-align: right; }
+  .tw-row { display: grid; grid-template-columns: 92px 1fr 70px; align-items: center; gap: 8px; padding: 4px 0; color: var(--text-muted); }
+  .tw-row output { font-family: var(--mono); font-size: 11px; color: var(--text); text-align: right; }
+  .tw-row input { width: 100%; accent-color: var(--primary); }
+  .tw-check { display: flex; align-items: center; gap: 8px; padding: 5px 0; color: var(--text-muted); cursor: pointer; }
+  .tw-check input { accent-color: var(--primary); }
+  .tw-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .tw-actions button {
+    flex: 1; height: 32px; border-radius: 8px; cursor: pointer; font-size: 12.5px;
+    border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text);
+  }
+  .tw-actions button:hover { border-color: #2C3B60; }
+  .tw-actions .primary { background: var(--primary); border-color: transparent; color: #fff; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; z-index: 40;
+    padding: 10px 16px; border-radius: 10px; font-size: 13.5px;
+    background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text);
+    box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.8);
+    transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+    transition: opacity .25s, transform .35s var(--ease-out);
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ── Responsivo ─────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .side { display: none; }
+    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .window { height: 440px; }
+  }
+  @media (max-width: 760px) {
+    .nav-links { display: none; }
+  }
+  @media (max-width: 560px) {
+    .hero { padding-top: 108px; }
+    .pill { white-space: nowrap; }
+    .pill .long { display: none; }
+    .pill .short { display: inline; }
+    .gh-link .stars { display: none; }
+    .btn { width: 100%; }
+    .ctas { width: 100%; max-width: 360px; }
+    .card.hide-sm { display: none; }
+    .card.wide { grid-column: span 2; }
+    .preview { transform: perspective(1400px) rotateX(10deg); }
+    .window { height: 400px; }
+    .main { padding: 14px; }
+  }
+  @media (max-width: 380px) {
+    .nav-actions .btn-sm span { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; }
+    .preview, .preview-wrap:hover .preview { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="brand-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7C5CFF" />
+      <stop offset="1" stop-color="#3B82F6" />
+    </linearGradient>
+    <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22C55E" stop-opacity="0.35" />
+      <stop offset="1" stop-color="#22C55E" stop-opacity="0" />
+    </linearGradient>
+    <symbol id="logo" viewBox="0 0 28 28">
+      <rect width="28" height="28" rx="8" fill="url(#brand-grad)" />
+      <path d="M18.6 9.4A6.5 6.5 0 1 0 18.6 18.6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" />
+    </symbol>
+    <symbol id="i-github" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></symbol>
+    <symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/></symbol>
+    <symbol id="i-dash" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+  </defs>
+</svg>
+
+<header class="nav">
+  <a class="brand" href="#" aria-label="CodatOS — início">
+    <svg aria-hidden="true"><use href="#logo" /></svg>
+    CodatOS
+  </a>
+  <nav class="nav-links" aria-label="Principal">
+    <a href="#" data-soon>Recursos</a>
+    <a href="#" data-soon>Segurança</a>
+    <a href="#" data-soon>Preços</a>
+    <a href="#" data-soon>Docs</a>
+  </nav>
+  <div class="nav-actions">
+    <a class="gh-link" href="https://github.com/andrecodato/CodatOS" target="_blank" rel="noopener" aria-label="CodatOS no GitHub">
+      <svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+      <span class="stars">★ —</span>
+    </a>
+    <a class="btn-sm" href="#" data-soon>
+      <svg class="icon" aria-hidden="true"><use href="#i-download" /></svg>
+      <span>Baixar</span>
+    </a>
+  </div>
+</header>
+
+<main>
+  <section class="hero" id="hero" aria-labelledby="hero-title">
+    <canvas id="mosaic" aria-hidden="true"></canvas>
+    <div class="veil" aria-hidden="true"></div>
+
+    <div class="hero-inner">
+      <a class="pill" href="https://github.com/andrecodato/CodatOS" target="_blank" rel="noopener">
+        <span class="tag">Em planejamento</span>
+        <span class="long">Acompanhe o desenvolvimento no GitHub</span>
+        <span class="short">Acompanhe no GitHub</span>
+        <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+      </a>
+
+      <h1 id="hero-title">
+        <span class="top">Seu universo,</span><br />
+        <span class="grad">em um só lugar.</span>
+      </h1>
+
+      <p class="lead">
+        Finanças, tarefas, agenda, servidores e a saúde do seu PC num painel bonito,
+        rápido e privado. Open source.
+      </p>
+
+      <div class="ctas">
+        <a class="btn btn-primary" id="cta-download" href="#" data-soon>
+          <svg class="icon" aria-hidden="true"><use href="#i-download" /></svg>
+          <span id="cta-label">Baixar o CodatOS</span>
+        </a>
+        <a class="btn btn-secondary" href="https://github.com/andrecodato/CodatOS" target="_blank" rel="noopener">
+          <svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+          Ver no GitHub
+          <span class="count" aria-label="estrelas no GitHub">
+            <svg class="icon" aria-hidden="true"><use href="#i-star" /></svg>—
+          </span>
+        </a>
+      </div>
+      <p class="also" id="cta-also">Disponível para Windows, macOS e Linux</p>
+
+      <ul class="badges" aria-label="Destaques">
+        <li><svg class="icon" aria-hidden="true"><use href="#i-code" /></svg>Gratuito e open source</li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-monitor" /></svg>Windows · macOS · Linux</li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-lock" /></svg>Criptografia ponta a ponta</li>
+      </ul>
+
+      <p class="hint" id="hint" aria-hidden="true">✦ Clique em qualquer lugar do fundo</p>
+
+      <div class="preview-wrap" data-no-wave aria-label="Prévia do dashboard do CodatOS" role="img">
+        <div class="preview">
+          <div class="window" aria-hidden="true">
+            <div class="titlebar"><i></i><i></i><i></i><span>CodatOS</span></div>
+            <div class="app">
+              <aside class="side">
+                <div class="brand"><svg><use href="#logo" /></svg>CodatOS</div>
+                <div class="si active"><svg class="icon"><use href="#i-dash" /></svg>Dashboard</div>
+                <div class="si"><svg class="icon"><use href="#i-wallet" /></svg>Financeiro</div>
+                <div class="si"><svg class="icon"><use href="#i-check" /></svg>TaskHub</div>
+                <div class="si"><svg class="icon"><use href="#i-terminal" /></svg>Conexões</div>
+                <div class="si"><svg class="icon"><use href="#i-folder" /></svg>Projetos</div>
+                <div class="si"><svg class="icon"><use href="#i-gear" /></svg>Configurações</div>
+              </aside>
+              <div class="main">
+                <div class="greet">
+                  <h3>Olá, Andre 👋</h3>
+                  <p>Aqui está um resumo do seu dia.</p>
+                </div>
+                <div class="cards">
+                  <div class="card">
+                    <h4>Saldo total</h4>
+                    <div class="metric">R$ 12.480,32</div>
+                    <div class="sub up">↑ 12% este mês</div>
+                    <svg class="spark" viewBox="0 0 120 36" preserveAspectRatio="none">
+                      <path d="M0 30 L12 26 L24 28 L36 20 L48 22 L60 15 L72 18 L84 10 L96 12 L108 6 L120 8 L120 36 L0 36 Z" fill="url(#spark-grad)" />
+                      <path d="M0 30 L12 26 L24 28 L36 20 L48 22 L60 15 L72 18 L84 10 L96 12 L108 6 L120 8" fill="none" stroke="#22C55E" stroke-width="1.6" vector-effect="non-scaling-stroke" />
+                    </svg>
+                  </div>
+                  <div class="card">
+                    <h4>Tarefas</h4>
+                    <div class="metric">12</div>
+                    <div class="sub">3 em andamento · 9 concluídas</div>
+                    <div class="bar"><span style="width:75%"></span></div>
+                    <div class="rows">
+                      <div class="row"><span class="dot" style="border:1.5px solid #3B82F6"></span>Revisar PR do projeto<span class="when" style="color:#F43F5E">Hoje</span></div>
+                      <div class="row"><span class="dot" style="border:1.5px solid #3B82F6"></span>Estudar Rust<span class="when" style="color:#F43F5E">Hoje</span></div>
+                    </div>
+                  </div>
+                  <div class="card hide-sm">
+                    <h4>Uso do PC</h4>
+                    <div class="ring-row">
+                      <div class="ring">
+                        <svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#1A2440" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="#3B82F6" stroke-width="4" stroke-linecap="round" stroke-dasharray="13.6 113.1"/></svg>
+                        <b>12%</b>CPU · 45°C
+                      </div>
+                      <div class="ring">
+                        <svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#1A2440" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="#22C55E" stroke-width="4" stroke-linecap="round" stroke-dasharray="54.3 113.1"/></svg>
+                        <b>48%</b>RAM
+                      </div>
+                      <div class="ring">
+                        <svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#1A2440" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="#8B7BFF" stroke-width="4" stroke-linecap="round" stroke-dasharray="9 113.1"/></svg>
+                        <b>8%</b>GPU · 42°C
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card hide-sm">
+                    <h4>WSL em execução</h4>
+                    <div class="rows" style="margin-top:12px">
+                      <div class="row"><span class="dot" style="background:#22C55E"></span>Ubuntu-22.04<span class="when sub">2h 14min</span></div>
+                      <div class="row"><span class="dot" style="background:#22C55E"></span>docker-desktop<span class="when sub">3 containers</span></div>
+                      <div class="row"><span class="dot" style="background:#22C55E"></span>ubuntu-app<span class="when sub">2 containers</span></div>
+                      <div class="row"><span class="dot" style="background:#334155"></span>Debian<span class="when sub">parada</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="cards">
+                  <div class="card wide">
+                    <h4>Discos</h4>
+                    <div class="disk"><div><span>C: (SSD)</span><span>120 GB / 512 GB</span></div><div class="bar"><span style="width:24%"></span></div></div>
+                    <div class="disk"><div><span>D: (HDD)</span><span>320 GB / 1 TB</span></div><div class="bar"><span style="width:32%"></span></div></div>
+                  </div>
+                  <div class="card wide hide-sm">
+                    <h4>Projetos recentes</h4>
+                    <div class="rows">
+                      <div class="row"><svg class="icon" style="width:14px;height:14px;color:#60A5FA"><use href="#i-folder"/></svg>codatos<span class="when sub">hoje</span></div>
+                      <div class="row"><svg class="icon" style="width:14px;height:14px;color:#60A5FA"><use href="#i-folder"/></svg>taskhub<span class="when sub">ontem</span></div>
+                      <div class="row"><svg class="icon" style="width:14px;height:14px;color:#60A5FA"><use href="#i-folder"/></svg>home-lab<span class="when sub">3 dias atrás</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="tweaks">
+  <div class="tweaks-panel" id="tweaks-panel" hidden>
+    <div class="tw-head">
+      <strong>Ajustes do mosaico</strong>
+      <span class="tw-stats" id="tw-stats">—</span>
+    </div>
+    <label class="tw-row"><span>Ladrilho</span><input type="range" min="20" max="64" step="1" data-param="tile" /><output></output></label>
+    <label class="tw-row"><span>Velocidade</span><input type="range" min="0.2" max="2.5" step="0.05" data-param="speed" /><output></output></label>
+    <label class="tw-row"><span>Pulso</span><input type="range" min="200" max="1600" step="10" data-param="pulse" /><output></output></label>
+    <label class="tw-row"><span>Alcance</span><input type="range" min="150" max="1500" step="10" data-param="falloff" /><output></output></label>
+    <label class="tw-row"><span>Brilho</span><input type="range" min="0" max="1" step="0.05" data-param="glow" /><output></output></label>
+    <label class="tw-row"><span>Raio do hover</span><input type="range" min="0" max="260" step="10" data-param="hoverRadius" /><output></output></label>
+    <label class="tw-check"><input type="checkbox" data-param="twinkle" /> Cintilar quando ocioso</label>
+    <label class="tw-check"><input type="checkbox" id="tw-reduce" /> Simular movimento reduzido</label>
+    <div class="tw-actions">
+      <button type="button" id="tw-reset">Restaurar</button>
+      <button type="button" class="primary" id="tw-copy">Copiar parâmetros</button>
+    </div>
+  </div>
+  <button type="button" class="tweaks-toggle" id="tweaks-toggle" aria-expanded="false" aria-controls="tweaks-panel">
+    <svg class="icon" aria-hidden="true"><use href="#i-sliders" /></svg>
+    Ajustes
+  </button>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ── Parâmetros (padrões de docs/08-site.md) ─────────────────────────
+  const DEFAULTS = Object.freeze({
+    tile: 36,          // px (no celular é reduzido para ~28)
+    gap: 2,            // px entre ladrilhos
+    speed: 0.9,        // px/ms — velocidade da frente da onda
+    pulse: 650,        // ms — duração do pulso em cada ladrilho
+    falloff: 650,      // px — decaimento exp(-d / falloff)
+    glow: 0.6,         // 0..1 — intensidade do brilho aditivo
+    hoverRadius: 120,  // px
+    twinkle: true,     // cintilar ocioso
+  });
+  const STORAGE_KEY = 'codatos.mosaico.params.v1';
+  const MAX_WAVES = 14;
+  const ATTACK = 0.12;           // fração do pulso gasta subindo até o pico
+  const FLASH_MS = 420;          // clarão no ponto do clique
+  const TWINKLE_MS = 2600;
+  const TWINKLE_DENSITY = 0.018; // fração de ladrilhos cintilando ao mesmo tempo
+  const IDLE_FPS = 24;           // só o cintilar ativo → renderiza mais devagar
+  const GLOW_MS = 450;           // brilho local no modo de movimento reduzido
+  const NO_WAVE = 'a, button, input, select, textarea, label, [data-no-wave]';
+
+  // Rampa de cor: base → #1D4ED8 → #3B82F6 → #93C5FD
+  const STOPS = [[0, [11, 17, 34]], [0.45, [29, 78, 216]], [0.75, [59, 130, 246]], [1, [147, 197, 253]]];
+  const LUT_SIZE = 64;
+  const LUT = (() => {
+    const out = [];
+    for (let i = 0; i < LUT_SIZE; i++) {
+      const t = i / (LUT_SIZE - 1);
+      let j = 0;
+      while (j < STOPS.length - 2 && t > STOPS[j + 1][0]) j++;
+      const [t0, c0] = STOPS[j];
+      const [t1, c1] = STOPS[j + 1];
+      const k = Math.min(1, Math.max(0, (t - t0) / (t1 - t0)));
+      out.push(`rgb(${Math.round(c0[0] + (c1[0] - c0[0]) * k)},${Math.round(c0[1] + (c1[1] - c0[1]) * k)},${Math.round(c0[2] + (c1[2] - c0[2]) * k)})`);
+    }
+    return out;
+  })();
+
+  function loadParams() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return { ...DEFAULTS, ...JSON.parse(raw) };
+    } catch (_) { /* armazenamento indisponível */ }
+    return { ...DEFAULTS };
+  }
+  function saveParams() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(params)); } catch (_) { /* ignora */ }
+  }
+  let params = loadParams();
+
+  // ── Estado ──────────────────────────────────────────────────────────
+  const hero = document.getElementById('hero');
+  const canvas = document.getElementById('mosaic');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const base = document.createElement('canvas');
+  const bctx = base.getContext('2d', { alpha: false });
+
+  let W = 0, H = 0, dpr = 1, tile = 36, n = 0;
+  let tx, ty, cx, cy, twStart, twPeak;
+  const buckets = Array.from({ length: LUT_SIZE }, () => []);
+  const hot = [];
+  const waves = [];
+  const glows = [];
+  const hover = { x: 0, y: 0, active: false };
+  const stats = { frameMs: 0 };
+
+  let raf = 0, dirty = true, lastRender = 0, lastTwinkle = 0, twinkleAcc = 0;
+  let pageVisible = !document.hidden, onScreen = true, simulateReduce = false;
+  const reduceMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = () => reduceMq.matches || simulateReduce;
+
+  const roundRect = (c, x, y, w, h, r) => (c.roundRect ? c.roundRect(x, y, w, h, r) : c.rect(x, y, w, h));
+
+  // ── Grade ───────────────────────────────────────────────────────────
+  function layout() {
+    const rect = hero.getBoundingClientRect();
+    W = Math.max(1, Math.round(rect.width));
+    H = Math.max(1, Math.round(rect.height));
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    base.width = canvas.width;
+    base.height = canvas.height;
+
+    tile = Math.max(12, Math.round(params.tile * (window.innerWidth < 640 ? 28 / 36 : 1)));
+    const step = tile + params.gap;
+    const cols = Math.ceil(W / step) + 1;
+    const rows = Math.ceil(H / step) + 1;
+    const ox = Math.round((W - (cols * step - params.gap)) / 2);
+    const oy = Math.round((H - (rows * step - params.gap)) / 2);
+
+    n = cols * rows;
+    tx = new Float32Array(n); ty = new Float32Array(n);
+    cx = new Float32Array(n); cy = new Float32Array(n);
+    twStart = new Float64Array(n).fill(-1e9);
+    twPeak = new Float32Array(n);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const i = r * cols + c;
+        tx[i] = ox + c * step; ty[i] = oy + r * step;
+        cx[i] = tx[i] + tile / 2; cy[i] = ty[i] + tile / 2;
+      }
+    }
+    drawBase();
+    requestRender();
+  }
+
+  function drawBase() {
+    const rad = Math.max(2, tile * 0.12);
+    bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    bctx.fillStyle = '#060A14';
+    bctx.fillRect(0, 0, W, H);
+    bctx.fillStyle = '#131B31';
+    bctx.beginPath();
+    for (let i = 0; i < n; i++) roundRect(bctx, tx[i], ty[i], tile, tile, rad);
+    bctx.fill();
+    bctx.fillStyle = '#0B1122';
+    bctx.beginPath();
+    for (let i = 0; i < n; i++) roundRect(bctx, tx[i] + 1, ty[i] + 1, tile - 2, tile - 2, rad - 1);
+    bctx.fill();
+  }
+
+  // ── Renderização ────────────────────────────────────────────────────
+  function spawnTwinkles(now) {
+    const dt = lastTwinkle ? Math.min(100, now - lastTwinkle) : 16;
+    lastTwinkle = now;
+    twinkleAcc += (n * TWINKLE_DENSITY / TWINKLE_MS) * dt;
+    while (twinkleAcc >= 1) {
+      twinkleAcc -= 1;
+      const i = (Math.random() * n) | 0;
+      if (now - twStart[i] > TWINKLE_MS) {
+        twStart[i] = now;
+        twPeak[i] = 0.08 + Math.random() * 0.16;
+      }
+    }
+  }
+
+  function render(now) {
+    const t0 = performance.now();
+    const rm = reduced();
+    const { speed, pulse, falloff, glow, hoverRadius } = params;
+    const band = speed * pulse;
+    const invFall = 1 / falloff;
+
+    // remove ondas que já saíram da tela ou ficaram fracas demais
+    const maxD = Math.min(Math.hypot(W, H), falloff * 4.6);
+    for (let k = waves.length - 1; k >= 0; k--) {
+      if (now - waves[k].t0 > maxD / speed + pulse) waves.splice(k, 1);
+    }
+    for (let k = glows.length - 1; k >= 0; k--) {
+      if (now - glows[k].t0 > GLOW_MS) glows.splice(k, 1);
+    }
+
+    const doTwinkle = params.twinkle && !rm;
+    if (doTwinkle) spawnTwinkles(now);
+    const doHover = hover.active && !rm && hoverRadius > 0;
+    const hr2 = hoverRadius * hoverRadius;
+
+    for (let b = 0; b < LUT_SIZE; b++) buckets[b].length = 0;
+    hot.length = 0;
+
+    for (let i = 0; i < n; i++) {
+      let keep = 1; // produto de (1 - energia): várias fontes se somam sem estourar
+
+      if (doTwinkle) {
+        const age = now - twStart[i];
+        if (age >= 0 && age < TWINKLE_MS) keep *= 1 - twPeak[i] * Math.sin(Math.PI * age / TWINKLE_MS);
+      }
+      if (doHover) {
+        const dx = cx[i] - hover.x, dy = cy[i] - hover.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < hr2) {
+          const f = 1 - Math.sqrt(d2) / hoverRadius;
+          keep *= 1 - 0.24 * f * f;
+        }
+      }
+      for (let k = 0; k < waves.length; k++) {
+        const w = waves[k];
+        const dx = cx[i] - w.x, dy = cy[i] - w.y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        const lag = (now - w.t0) * speed - d; // quanto a frente já passou deste ladrilho
+        if (lag < 0 || lag >= band) continue;
+        const p = lag / band;
+        const shape = p < ATTACK ? p / ATTACK : (1 - (p - ATTACK) / (1 - ATTACK)) ** 2;
+        keep *= 1 - shape * Math.exp(-d * invFall);
+      }
+      for (let k = 0; k < glows.length; k++) {
+        const g = glows[k];
+        const dx = cx[i] - g.x, dy = cy[i] - g.y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        const age = Math.max(0, now - g.t0);
+        if (d < 90) keep *= 1 - 0.55 * (1 - age / GLOW_MS) * (1 - d / 90);
+      }
+
+      const e = 1 - keep;
+      if (e > 0.012) {
+        buckets[Math.min(LUT_SIZE - 1, (e * (LUT_SIZE - 1)) | 0)].push(i);
+        if (e > 0.5) hot.push(i, e);
+      }
+    }
+
+    // base pré-renderizada + só os ladrilhos acesos, agrupados por cor
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(base, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const rad = Math.max(2, tile * 0.12);
+    for (let b = 1; b < LUT_SIZE; b++) {
+      const list = buckets[b];
+      if (!list.length) continue;
+      ctx.fillStyle = LUT[b];
+      ctx.beginPath();
+      for (let j = 0; j < list.length; j++) roundRect(ctx, tx[list[j]], ty[list[j]], tile, tile, rad);
+      ctx.fill();
+    }
+
+    // brilho aditivo: halo nos ladrilhos mais quentes, anel da onda e clarão do clique
+    ctx.globalCompositeOperation = 'lighter';
+    if (glow > 0) {
+      for (let j = 0; j < hot.length; j += 2) {
+        const i = hot[j];
+        const a = (hot[j + 1] - 0.5) * 2 * glow * 0.32;
+        ctx.fillStyle = `rgba(96,165,250,${a.toFixed(3)})`;
+        ctx.fillRect(tx[i] - 4, ty[i] - 4, tile + 8, tile + 8);
+      }
+    }
+    if (!rm) {
+      for (const w of waves) {
+        // o timestamp do rAF marca o início do quadro e pode ser anterior ao clique
+        const age = Math.max(0, now - w.t0);
+        const r = age * speed;
+        const ringA = 0.42 * Math.exp(-r * invFall * 1.15) * (glow * 0.6 + 0.4);
+        if (ringA > 0.01) {
+          ctx.strokeStyle = `rgba(147,197,253,${ringA.toFixed(3)})`;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(w.x, w.y, r, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        if (age < FLASH_MS) {
+          const p = age / FLASH_MS;
+          const R = 30 + p * 190;
+          const g = ctx.createRadialGradient(w.x, w.y, 0, w.x, w.y, R);
+          g.addColorStop(0, `rgba(191,219,254,${(0.55 * (1 - p)).toFixed(3)})`);
+          g.addColorStop(0.4, `rgba(59,130,246,${(0.35 * (1 - p)).toFixed(3)})`);
+          g.addColorStop(1, 'rgba(59,130,246,0)');
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(w.x, w.y, R, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+    ctx.globalCompositeOperation = 'source-over';
+
+    const ms = performance.now() - t0;
+    stats.frameMs = stats.frameMs ? stats.frameMs * 0.9 + ms * 0.1 : ms;
+  }
+
+  // ── Laço de animação (só roda quando há algo para mostrar) ──────────
+  function busy() {
+    return waves.length > 0 || glows.length > 0 || (hover.active && !reduced());
+  }
+  function wantsFrames() {
+    return busy() || (params.twinkle && !reduced());
+  }
+  function schedule() {
+    if (!raf && pageVisible && onScreen) raf = requestAnimationFrame(frame);
+  }
+  function requestRender() {
+    dirty = true;
+    schedule();
+  }
+  function frame(now) {
+    raf = 0;
+    if (!pageVisible || !onScreen) return;
+    try {
+      if (dirty || busy() || now - lastRender >= 1000 / IDLE_FPS - 1) {
+        dirty = false;
+        lastRender = now;
+        render(now);
+      }
+    } finally {
+      // um erro num quadro não pode congelar a animação
+      if (wantsFrames()) schedule();
+    }
+  }
+
+  // ── Interação ───────────────────────────────────────────────────────
+  const hint = document.getElementById('hint');
+  let hintDone = false;
+  function hideHint() {
+    if (hintDone) return;
+    hintDone = true;
+    hint.classList.add('gone');
+  }
+  setTimeout(() => { if (!hintDone) hint.classList.add('show'); }, 1200);
+
+  function trigger(x, y) {
+    const now = performance.now();
+    if (reduced()) {
+      glows.push({ x, y, t0: now });
+    } else {
+      waves.push({ x, y, t0: now });
+      if (waves.length > MAX_WAVES) waves.shift();
+    }
+    hideHint();
+    requestRender();
+  }
+
+  function localPoint(e) {
+    const r = canvas.getBoundingClientRect();
+    return [e.clientX - r.left, e.clientY - r.top];
+  }
+
+  hero.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (e.target.closest(NO_WAVE)) return;
+    const [x, y] = localPoint(e);
+    trigger(x, y);
+  });
+  hero.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    [hover.x, hover.y] = localPoint(e);
+    hover.active = true;
+    requestRender();
+  });
+  hero.addEventListener('pointerleave', () => {
+    hover.active = false;
+    requestRender();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    pageVisible = !document.hidden;
+    if (pageVisible) { lastTwinkle = 0; requestRender(); }
+  });
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting;
+      if (onScreen) requestRender();
+    }).observe(hero);
+  }
+  let layoutRaf = 0;
+  const scheduleLayout = () => {
+    if (layoutRaf) return;
+    layoutRaf = requestAnimationFrame(() => { layoutRaf = 0; layout(); });
+  };
+  if ('ResizeObserver' in window) new ResizeObserver(scheduleLayout).observe(hero);
+  else window.addEventListener('resize', scheduleLayout);
+  if (reduceMq.addEventListener) reduceMq.addEventListener('change', requestRender);
+  else if (reduceMq.addListener) reduceMq.addListener(requestRender);
+
+  // ── Botão de download conforme o sistema ────────────────────────────
+  (function setupDownload() {
+    const ua = navigator.userAgent || '';
+    const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+    let os = 'unknown';
+    if (/android|iphone|ipad|ipod/i.test(ua) || (/mac/i.test(platform) && navigator.maxTouchPoints > 1)) os = 'mobile';
+    else if (/win/i.test(platform) || /windows/i.test(ua)) os = 'windows';
+    else if (/mac/i.test(platform) || /mac os/i.test(ua)) os = 'macos';
+    else if (/linux|x11|cros/i.test(platform + ' ' + ua)) os = 'linux';
+
+    const names = { windows: 'Windows', macos: 'macOS', linux: 'Linux' };
+    const label = document.getElementById('cta-label');
+    const also = document.getElementById('cta-also');
+    if (names[os]) {
+      label.textContent = `Baixar para ${names[os]}`;
+      const others = Object.keys(names).filter((k) => k !== os).map((k) => names[k]);
+      also.innerHTML = `Também para <a href="#" data-soon>${others[0]}</a> e <a href="#" data-soon>${others[1]}</a>`;
+    } else if (os === 'mobile') {
+      label.textContent = 'Ver opções de download';
+      also.textContent = 'O app é para computador — no celular, use a versão web (plano Pro)';
+    }
+  })();
+
+  // ── Toast para links que ainda não existem ──────────────────────────
+  const toast = document.getElementById('toast');
+  let toastTimer = 0;
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+  document.addEventListener('click', (e) => {
+    const soon = e.target.closest('[data-soon]');
+    if (!soon) return;
+    e.preventDefault();
+    showToast('Em breve — o CodatOS ainda está em desenvolvimento.');
+  });
+
+  // ── Painel de ajustes ───────────────────────────────────────────────
+  const panel = document.getElementById('tweaks-panel');
+  const toggle = document.getElementById('tweaks-toggle');
+  const statsEl = document.getElementById('tw-stats');
+  let statsTimer = 0;
+  const fmt = {
+    tile: (v) => `${v}px`,
+    speed: (v) => `${Number(v).toFixed(2)} px/ms`,
+    pulse: (v) => `${v} ms`,
+    falloff: (v) => `${v} px`,
+    glow: (v) => `${Math.round(v * 100)}%`,
+    hoverRadius: (v) => `${v} px`,
+  };
+  function updateStats() {
+    statsEl.textContent = `${stats.frameMs.toFixed(2)} ms/frame · ${n} ladrilhos · ${waves.length} ondas`;
+  }
+  toggle.addEventListener('click', () => {
+    const open = panel.hidden;
+    panel.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    clearInterval(statsTimer);
+    if (open) { updateStats(); statsTimer = setInterval(updateStats, 400); }
+  });
+
+  const syncers = [];
+  document.querySelectorAll('[data-param]').forEach((input) => {
+    const key = input.dataset.param;
+    const out = input.parentElement.querySelector('output');
+    const sync = () => {
+      if (input.type === 'checkbox') input.checked = !!params[key];
+      else {
+        input.value = params[key];
+        if (out) out.textContent = fmt[key](params[key]);
+      }
+    };
+    sync();
+    syncers.push(sync);
+    input.addEventListener('input', () => {
+      params[key] = input.type === 'checkbox' ? input.checked : Number(input.value);
+      if (out) out.textContent = fmt[key](params[key]);
+      saveParams();
+      if (key === 'tile') scheduleLayout();
+      requestRender();
+    });
+  });
+  document.getElementById('tw-reduce').addEventListener('change', (e) => {
+    simulateReduce = e.target.checked;
+    waves.length = 0;
+    requestRender();
+  });
+  document.getElementById('tw-reset').addEventListener('click', () => {
+    params = { ...DEFAULTS };
+    saveParams();
+    syncers.forEach((s) => s());
+    scheduleLayout();
+  });
+  document.getElementById('tw-copy').addEventListener('click', () => {
+    const text = JSON.stringify(params, null, 2);
+    const done = () => showToast('Parâmetros copiados.');
+    const fallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (_) { showToast('Não foi possível copiar.'); }
+      ta.remove();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+    else fallback();
+  });
+
+  // Exposto para depuração no console.
+  window.__mosaico = {
+    get params() { return { ...params }; },
+    get stats() { return { frameMs: stats.frameMs, tiles: n, waves: waves.length, glows: glows.length, running: !!raf }; },
+    trigger,
+  };
+
+  layout();
+})();
+</script>
+</body>
+</html>

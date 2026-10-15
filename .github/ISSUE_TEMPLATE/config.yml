@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Reportar vulnerabilidade
+    url: https://github.com/andrecodato/CodatOS/security/advisories/new
+    about: Use o reporte privado do GitHub. Nunca abra issue pública para falhas de segurança.
+  - name: 📚 Documentação
+    url: https://github.com/andrecodato/CodatOS/tree/main/docs
+    about: Requisitos, arquitetura e decisões do projeto.

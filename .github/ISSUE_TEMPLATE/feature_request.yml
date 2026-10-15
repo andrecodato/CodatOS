@@ -1,0 +1,46 @@
+name: 💡 Ideia / recurso
+description: Sugira algo novo ou uma melhoria
+labels: ["ideia", "triagem"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qual problema isso resolve?
+      description: Conte a situação do dia a dia em que você sentiu falta disso.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Como você imagina?
+    validations:
+      required: true
+  - type: dropdown
+    id: module
+    attributes:
+      label: Módulo
+      multiple: true
+      options:
+        - Dashboard
+        - Sistema (PC, discos, WSL, Docker)
+        - Projetos
+        - Conexões (SSH, SFTP…)
+        - Financeiro
+        - TaskHub
+        - Clima / calendário
+        - Conta e sincronização
+        - Acesso remoto (navegador / celular)
+        - Tenants e permissões
+        - Site
+        - Outro
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas que você já usa hoje
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Confirmação
+      options:
+        - label: A ideia não exige que o servidor guarde arquivos ou segredos em texto claro (restrições R-01 a R-08).
+          required: true

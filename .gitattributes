@@ -1,0 +1,27 @@
+# Normaliza finais de linha para LF no repositório
+* text=auto eol=lf
+
+# Scripts do Windows mantêm CRLF
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binários
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.wasm binary
+
+# Canvas do Obsidian é JSON
+*.canvas text eol=lf linguist-language=JSON
+
+# Documentação conta como documentação nas estatísticas do GitHub
+docs/** linguist-documentation
+vault/** linguist-documentation
