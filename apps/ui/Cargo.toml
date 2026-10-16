@@ -11,6 +11,10 @@ publish.workspace = true
 
 [dependencies]
 codatos-protocol.workspace = true
+console_error_panic_hook.workspace = true
+leptos.workspace = true
+wasm-bindgen.workspace = true
+web-sys.workspace = true
 
 [lints]
 workspace = true

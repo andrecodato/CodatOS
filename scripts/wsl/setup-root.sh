@@ -18,7 +18,7 @@ echo "==> pacotes base e git"
 apt-get install -y -q build-essential pkg-config libssl-dev curl wget file ca-certificates gnupg unzip git
 
 echo "==> dependencias do Tauri (Linux) e toolchain para cross-compilar o app Windows"
-apt-get install -y -q libwebkit2gtk-4.1-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev clang lld llvm
+apt-get install -y -q libwebkit2gtk-4.1-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev clang lld llvm nsis
 
 install -m 0755 -d /etc/apt/keyrings
 

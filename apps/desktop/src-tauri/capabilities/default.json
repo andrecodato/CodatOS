@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "IPC mínimo da janela principal (ADR-0003: o resto passa pela API do núcleo)",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

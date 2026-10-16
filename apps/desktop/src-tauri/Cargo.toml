@@ -13,8 +13,12 @@ publish.workspace = true
 name = "codatos"
 path = "src/main.rs"
 
+[build-dependencies]
+tauri-build.workspace = true
+
 [dependencies]
 codatos-core.workspace = true
+tauri.workspace = true
 
 [lints]
 workspace = true
