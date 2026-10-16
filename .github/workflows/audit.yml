@@ -1,0 +1,46 @@
+name: Auditoria de dependências
+
+on:
+  pull_request:
+    paths:
+      - "Cargo.lock"
+      - "deny.toml"
+      - "osv-scanner.toml"
+      - ".github/workflows/audit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "Cargo.lock"
+      - "deny.toml"
+      - "osv-scanner.toml"
+      - ".github/workflows/audit.yml"
+  schedule:
+    # Segunda, 06:00 em Brasília (09:00 UTC): pega advisories novos sem mudança no repo.
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cargo-deny:
+    name: cargo-deny
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Toolchain (rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: taiki-e/install-action@v2.87.28
+        with:
+          tool: cargo-deny@0.20.2
+      - run: cargo deny check
+
+  osv-scanner:
+    name: osv-scanner
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: taiki-e/install-action@v2.87.28
+        with:
+          tool: osv-scanner@2.7.0
+      - run: osv-scanner scan source --lockfile Cargo.lock

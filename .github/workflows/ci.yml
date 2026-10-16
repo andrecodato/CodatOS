@@ -1,0 +1,96 @@
+name: CI
+
+# Só roda quando muda algo do app Rust (ADR-0001: filtros por caminho).
+on:
+  pull_request:
+    paths:
+      - "apps/desktop/**"
+      - "apps/ui/**"
+      - "crates/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "rustfmt.toml"
+      - "clippy.toml"
+      - ".github/workflows/ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/desktop/**"
+      - "apps/ui/**"
+      - "crates/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "rustfmt.toml"
+      - "clippy.toml"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  # Versões iguais às de scripts/wsl/setup-user.sh.
+  TRUNK_VERSION: 0.21.14
+  TAURI_CLI_VERSION: 2.12.3
+
+jobs:
+  lint:
+    name: fmt e clippy
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Dependências do Tauri (Linux)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev
+
+      - name: Toolchain (rust-toolchain.toml)
+        run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2.9.2
+
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: clippy da UI em wasm32
+        run: cargo clippy -p codatos-ui --target wasm32-unknown-unknown -- -D warnings
+
+  build:
+    name: testes e build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Dependências do Tauri (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev
+
+      - name: Toolchain (rust-toolchain.toml)
+        run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2.9.2
+
+      - uses: taiki-e/install-action@v2.87.28
+        with:
+          tool: trunk@${{ env.TRUNK_VERSION }},tauri-cli@${{ env.TAURI_CLI_VERSION }}
+
+      - run: cargo test --workspace
+
+      # Compila a UI (beforeBuildCommand = trunk build) e o app em release, sem instalador.
+      - name: cargo tauri build --no-bundle
+        working-directory: apps/desktop
+        run: cargo tauri build --no-bundle

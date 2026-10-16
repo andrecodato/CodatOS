@@ -1,0 +1,31 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommitTypeAll(chore)"],
+  "timezone": "America/Sao_Paulo",
+  "schedule": ["before 9am on monday"],
+  "labels": ["dependências"],
+  "packageRules": [
+    {
+      "groupName": "tauri",
+      "matchPackageNames": ["tauri", "tauri-build", "tauri-plugin-*", "tauri-cli"]
+    },
+    {
+      "groupName": "leptos e wasm-bindgen",
+      "matchPackageNames": ["leptos", "leptos_*", "wasm-bindgen", "web-sys", "js-sys"]
+    },
+    {
+      "groupName": "github actions",
+      "matchManagers": ["github-actions"]
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "wasm-bindgen-cli do Trunk precisa bater com o crate wasm-bindgen",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Trunk\\.toml$/"],
+      "matchStrings": ["wasm_bindgen = \"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "wasm-bindgen",
+      "datasourceTemplate": "crate"
+    }
+  ]
+}
