@@ -2,4 +2,5 @@
 
 pub mod icon;
 pub mod sidebar;
+pub mod titlebar;
 pub mod topbar;

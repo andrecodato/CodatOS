@@ -15,15 +15,7 @@
     }
   },
   "app": {
-    "windows": [
-      {
-        "title": "CodatOS",
-        "width": 1100,
-        "height": 720,
-        "minWidth": 800,
-        "minHeight": 560
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://127.0.0.1:47800 http://127.0.0.1:47800",
       "dangerousDisableAssetCspModification": [

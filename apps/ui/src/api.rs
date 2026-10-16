@@ -57,15 +57,11 @@ async fn open(status: WriteSignal<CoreStatus>) -> Result<(), JsValue> {
     status.set(CoreStatus::Connecting);
     let protocols = js_sys::Array::of1(&WS_PROTOCOL.into());
 
-    let url = if let Some(invoke) = tauri_invoke() {
-        let token = JsFuture::from(
-            invoke
-                .call1(&JsValue::NULL, &IPC_GET_SESSION_TOKEN.into())?
-                .dyn_into::<js_sys::Promise>()?,
-        )
-        .await?
-        .as_string()
-        .ok_or("token inválido")?;
+    let url = if in_tauri() {
+        let token = invoke(IPC_GET_SESSION_TOKEN, &JsValue::UNDEFINED)
+            .await?
+            .as_string()
+            .ok_or("token inválido")?;
         protocols.push(&format!("{WS_TOKEN_PROTOCOL_PREFIX}{token}").into());
         format!("ws://127.0.0.1:{DEFAULT_PORT}/rpc")
     } else {
@@ -134,6 +130,20 @@ fn replace(conn: Option<Conn>) {
         old.ws.set_onclose(None);
         let _ = old.ws.close();
     }
+}
+
+/// A UI está dentro da janela do app (e não num navegador)?
+pub fn in_tauri() -> bool {
+    tauri_invoke().is_some()
+}
+
+/// Chama um comando IPC do Tauri. Fora da janela do app, falha.
+pub async fn invoke(cmd: &str, args: &JsValue) -> Result<JsValue, JsValue> {
+    let invoke = tauri_invoke().ok_or("fora do Tauri")?;
+    let promise = invoke
+        .call2(&JsValue::NULL, &cmd.into(), args)?
+        .dyn_into::<js_sys::Promise>()?;
+    JsFuture::from(promise).await
 }
 
 /// `window.__TAURI_INTERNALS__.invoke`, presente só dentro da janela do Tauri.
