@@ -36,6 +36,10 @@
 | Acesso remoto (navegador e celular) | `RF-REM` | [modulos/acesso-remoto.md](modulos/acesso-remoto.md) |
 | Multitenancy e permissões | `RF-TEN` | [modulos/multitenancy.md](modulos/multitenancy.md) |
 
+## Operação
+
+- [Release e assinatura](release.md): release-please, instaladores, secrets de assinatura e chave do updater.
+
 ## Decisões de arquitetura
 
 Registradas como ADRs (Architecture Decision Records) em [adr/](adr/README.md).

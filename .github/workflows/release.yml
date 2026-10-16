@@ -1,0 +1,107 @@
+name: Release
+
+# Gera os instaladores e anexa ao GitHub Release da tag `app-v*` (docs/release.md).
+# Chamado pelo release-please.yml depois que o PR de release é mergeado; também
+# pode ser rodado à mão para refazer os anexos de uma tag que já existe.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Tag do release (app-vX.Y.Z)
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag do release (app-vX.Y.Z)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  # Mesmas versões do ci.yml e de scripts/wsl/setup-user.sh.
+  TRUNK_VERSION: 0.21.14
+  TAURI_CLI_VERSION: 2.12.3
+  ARTIFACT_SIGNING_CLI_VERSION: 0.11.0
+
+jobs:
+  bundle:
+    name: instalador (${{ matrix.os }})
+    if: startsWith(inputs.tag, 'app-v')
+    strategy:
+      fail-fast: false
+      matrix:
+        # NSIS no Windows, DMG no macOS (Apple Silicon), AppImage e .deb no Linux:
+        # os alvos já vêm de bundle.targets no tauri.conf.json.
+        os: [windows-latest, macos-latest, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    env:
+      # Assinatura Authenticode (Q-29 ainda em aberto: Azure Artifact Signing, antigo
+      # Trusted Signing, ou certificado OV). Implementado o caminho do Azure; sem os
+      # secrets, o instalador sai sem assinatura. Fora do Windows não há assinatura no M0.
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_ARTIFACT_SIGNING_ACCOUNT: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT }}
+      AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE: ${{ vars.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE }}
+      AZURE_ARTIFACT_SIGNING_ENDPOINT: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Dependências do Tauri (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev patchelf
+
+      - name: Toolchain (rust-toolchain.toml)
+        run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2.9.2
+
+      - uses: taiki-e/install-action@v2.87.28
+        with:
+          tool: trunk@${{ env.TRUNK_VERSION }},tauri-cli@${{ env.TAURI_CLI_VERSION }}
+
+      # Só roda com os secrets do Azure configurados. O Tauri chama o signCommand para
+      # cada binário e para o instalador NSIS; o runner windows-latest já traz Azure CLI
+      # e signtool. Se a Q-29 escolher certificado OV, troque este passo.
+      - name: Assinatura Authenticode (Azure Artifact Signing)
+        id: sign
+        if: runner.os == 'Windows' && env.AZURE_CLIENT_ID != ''
+        shell: bash
+        run: |
+          cargo install --locked "artifact-signing-cli@${ARTIFACT_SIGNING_CLI_VERSION}"
+          jq -n --arg endpoint "$AZURE_ARTIFACT_SIGNING_ENDPOINT" '{
+            bundle: { windows: { signCommand: {
+              cmd: "artifact-signing-cli",
+              args: ["-e", $endpoint, "-d", "CodatOS", "%1"]
+            } } }
+          }' > "$RUNNER_TEMP/tauri.sign.json"
+          echo "args=--config $RUNNER_TEMP/tauri.sign.json" >> "$GITHUB_OUTPUT"
+
+      - uses: tauri-apps/tauri-action@v0.6.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+          tauriScript: cargo tauri
+          args: ${{ steps.sign.outputs.args }}
+          tagName: ${{ inputs.tag }}
+          releaseName: CodatOS ${{ inputs.tag }}
+          releaseDraft: false
+          prerelease: false
+          # O updater (e o latest.json assinado com a chave Ed25519) entra no M1.
+          includeUpdaterJson: false
