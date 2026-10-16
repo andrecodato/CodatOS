@@ -23,6 +23,16 @@ Base: `http://127.0.0.1:47800` (porta configurável).
 | `GET /api/v1/sftp/download/:transfer` | Download de arquivo remoto para o navegador (stream, nada é gravado no servidor) |
 | `GET /rpc` (upgrade) | WebSocket principal |
 
+Toda requisição passa pela checagem de `Host` (só `127.0.0.1:<porta>` e `localhost:<porta>`) e, quando há `Origin`, pela lista de origens permitidas: o próprio núcleo e a janela do Tauri (`tauri://localhost`, `http(s)://tauri.localhost`). Fora disso a resposta é `403` com *problem details*. Não há CORS.
+
+`GET /api/v1/health` é pública (nada sensível). O WebSocket exige autenticação:
+
+| Cliente | Como se autentica |
+|---|---|
+| Janela do app | Token do app, recebido pelo IPC do Tauri, no subprotocolo: `Sec-WebSocket-Protocol: codatos.v1, codatos.token.<token>`. O servidor responde só `codatos.v1`. |
+| Navegador | "Abrir no navegador" gera um token de uso único (60 s); a página faz `POST /api/v1/session {"token": …}` e recebe o cookie `codatos_session` (`HttpOnly`, `SameSite=Strict`). |
+| Ferramentas locais | `Authorization: Bearer <token do app>`. |
+
 ### RPC sobre WebSocket
 
 Mensagens **JSON-RPC 2.0** para comandos e assinaturas; frames **binários** para terminal e SFTP.
@@ -40,7 +50,7 @@ Mensagens **JSON-RPC 2.0** para comandos e assinaturas; frames **binários** par
 
 | Domínio | Métodos |
 |---|---|
-| Sessão | `session.hello` (versão, capacidades), `vault.status`, `vault.unlock`, `vault.lock` |
+| Sessão | `session.hello` (versão, capacidades), `system.ping`, `vault.status`, `vault.unlock`, `vault.lock` |
 | Dashboard | `dashboards.list/get/save`, `widgets.catalog` |
 | Assinaturas | `subscribe(topic)`, `unsubscribe(sub)` — tópicos: `system.metrics`, `disks`, `wsl.distros`, `docker.containers`, `projects`, `weather`, `calendar.week`, `tasks.summary`, `finance.summary`, `notifications` |
 | Sistema | `system.info`, `processes.list`, `processes.kill` |
