@@ -13,3 +13,5 @@ open = false
 # padrão do Trunk 0.21 (version_123) é antigo demais para o WASM do Rust ≥ 1.87.
 wasm_bindgen = "0.2.129"
 wasm_opt = "version_133"
+# CLI standalone do Tailwind 4 (sem Node no build da UI).
+tailwindcss = "4.3.3"

@@ -327,7 +327,12 @@ async fn porta_ocupada_vira_erro() {
 async fn serve_a_ui_com_fallback_para_index() {
     let dir = std::env::temp_dir().join(format!("codatos-ui-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    std::fs::write(dir.join("index.html"), "<h1>CodatOS</h1>").unwrap();
+    // O Trunk carrega o WASM por um script embutido: a CSP libera o hash dele.
+    std::fs::write(
+        dir.join("index.html"),
+        "<h1>CodatOS</h1><script type=\"module\">boot()</script>",
+    )
+    .unwrap();
     let s = start(ServerConfig {
         port: 0,
         ui_dir: Some(dir.clone()),
@@ -341,6 +346,13 @@ async fn serve_a_ui_com_fallback_para_index() {
         assert_eq!(r.status, 200, "{path}");
         assert!(r.body.contains("CodatOS"), "{path}");
     }
+    let r = http(s.local_addr(), "GET", "/", &[("Host", &h)], "").await;
+    // sha256("boot()") em base64 (o cabeçalho volta em minúsculas do helper).
+    assert!(
+        r.head.contains("script-src 'self' 'wasm-unsafe-eval' 'sha256-mezs89wlf0u+o0hcvhtbt4q1whu+u+sjkgbdruc36my=';"),
+        "{}",
+        r.head
+    );
     let r = http(s.local_addr(), "GET", "/", &[("Host", "evil.example")], "").await;
     assert_eq!(r.status, 403, "a UI também passa pela checagem de Host");
     s.shutdown().await;

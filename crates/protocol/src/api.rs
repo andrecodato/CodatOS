@@ -5,6 +5,12 @@ use serde::{Deserialize, Serialize};
 /// Versão da API local exposta em `/api/v1`.
 pub const API_VERSION: u32 = 1;
 
+/// Porta padrão do núcleo em `127.0.0.1`. A CSP da janela do app aponta para ela.
+pub const DEFAULT_PORT: u16 = 47800;
+
+/// Comando IPC do Tauri que entrega à janela o token do app (ADR-0003).
+pub const IPC_GET_SESSION_TOKEN: &str = "get_session_token";
+
 /// Subprotocolo WebSocket negociado em `/rpc`.
 pub const WS_PROTOCOL: &str = "codatos.v1";
 

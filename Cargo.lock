@@ -482,11 +482,13 @@ name = "codatos-core"
 version = "0.0.0"
 dependencies = [
  "axum",
+ "base64 0.22.1",
  "codatos-protocol",
  "futures-util",
  "getrandom 0.4.3",
  "serde",
  "serde_json",
+ "sha2",
  "subtle",
  "thiserror 2.0.21",
  "tokio",
@@ -518,8 +520,11 @@ version = "0.0.0"
 dependencies = [
  "codatos-protocol",
  "console_error_panic_hook",
+ "js-sys",
  "leptos",
+ "serde_json",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 

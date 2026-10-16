@@ -1,5 +1,6 @@
 //! Servidor HTTP/WebSocket da API local.
 
+use std::fmt::Write as _;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -10,10 +11,13 @@ use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router, middleware};
+use base64::Engine as _;
+use base64::engine::general_purpose::STANDARD as BASE64;
 use codatos_protocol::api::{
     API_VERSION, Health, SESSION_COOKIE, SessionRequest, WS_PROTOCOL, WS_TOKEN_PROTOCOL_PREFIX,
 };
 use codatos_protocol::rpc::Problem;
+use sha2::{Digest, Sha256};
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
@@ -25,13 +29,14 @@ use crate::guard::{self, Allowed};
 use crate::rpc;
 
 /// Porta padrão da API local (`docs/06-api-e-protocolos.md`).
-pub const DEFAULT_PORT: u16 = 47800;
+pub const DEFAULT_PORT: u16 = codatos_protocol::api::DEFAULT_PORT;
 
 /// Tamanho máximo de uma mensagem no WebSocket (1 MiB).
 const MAX_WS_MESSAGE: usize = 1 << 20;
 
 /// CSP da UI servida ao navegador: nada de CDN, só o próprio núcleo (Segurança §8).
-const CSP: &str = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; \
+/// `{scripts}` recebe os hashes dos scripts embutidos no `index.html` (ver [`csp`]).
+const CSP: &str = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'{scripts}; \
     style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; \
     frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
 
@@ -110,7 +115,8 @@ pub async fn start(config: ServerConfig) -> Result<RunningServer, Error> {
 
     let auth = Arc::new(Auth::new());
     let allowed = Arc::new(Allowed::new(addr.port(), &config.extra_origins));
-    let app = router(Arc::clone(&auth), allowed, config.ui_dir.as_deref());
+    let csp = csp(config.ui_dir.as_deref());
+    let app = router(Arc::clone(&auth), allowed, config.ui_dir.as_deref(), &csp);
 
     let (shutdown, stop) = oneshot::channel::<()>();
     let task = tokio::spawn(async move {
@@ -136,7 +142,7 @@ struct AppState {
     auth: Arc<Auth>,
 }
 
-fn router(auth: Arc<Auth>, allowed: Arc<Allowed>, ui_dir: Option<&Path>) -> Router {
+fn router(auth: Arc<Auth>, allowed: Arc<Allowed>, ui_dir: Option<&Path>, csp: &str) -> Router {
     let api = Router::new()
         .route("/api/v1/health", get(health))
         .route("/api/v1/session", post(session))
@@ -155,7 +161,7 @@ fn router(auth: Arc<Auth>, allowed: Arc<Allowed>, ui_dir: Option<&Path>) -> Rout
     ))
     .layer(SetResponseHeaderLayer::overriding(
         header::CONTENT_SECURITY_POLICY,
-        HeaderValue::from_static(CSP),
+        HeaderValue::from_str(csp).expect("CSP é ASCII"),
     ))
     .layer(SetResponseHeaderLayer::overriding(
         header::X_CONTENT_TYPE_OPTIONS,
@@ -165,6 +171,41 @@ fn router(auth: Arc<Auth>, allowed: Arc<Allowed>, ui_dir: Option<&Path>) -> Rout
         header::REFERRER_POLICY,
         HeaderValue::from_static("no-referrer"),
     ))
+}
+
+/// Monta a CSP liberando, por hash, só os scripts embutidos no `index.html` da UI.
+/// O Trunk põe ali o `<script type="module">` que carrega o WASM; sem o hash, o
+/// navegador bloqueia e a UI não sobe. Mesma ideia que o Tauri aplica na janela.
+fn csp(ui_dir: Option<&Path>) -> String {
+    let index = ui_dir.and_then(|dir| std::fs::read_to_string(dir.join("index.html")).ok());
+    let mut scripts = String::new();
+    for body in index.as_deref().map(inline_scripts).unwrap_or_default() {
+        let hash = BASE64.encode(Sha256::digest(body));
+        let _ = write!(scripts, " 'sha256-{hash}'");
+    }
+    CSP.replace("{scripts}", &scripts)
+}
+
+/// Conteúdo dos `<script>` sem `src` (o hash da CSP cobre o texto exato entre as tags).
+fn inline_scripts(html: &str) -> Vec<&str> {
+    let mut found = Vec::new();
+    let mut rest = html;
+    while let Some(start) = rest.find("<script") {
+        rest = &rest[start..];
+        let Some(open_end) = rest.find('>') else {
+            break;
+        };
+        let open_tag = &rest[..open_end];
+        let body_start = open_end + 1;
+        let Some(len) = rest[body_start..].find("</script>") else {
+            break;
+        };
+        if !open_tag.contains("src=") {
+            found.push(&rest[body_start..body_start + len]);
+        }
+        rest = &rest[body_start + len..];
+    }
+    found
 }
 
 async fn health() -> Json<Health> {
@@ -271,4 +312,22 @@ pub(crate) fn problem_response(status: StatusCode, code: &str, title: &str) -> R
         body,
     )
         .into_response()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn acha_so_scripts_embutidos() {
+        let html = r#"<script type="module">init()</script><script src="/a.js"></script>
+            <script>x</script>"#;
+        assert_eq!(inline_scripts(html), ["init()", "x"]);
+    }
+
+    #[test]
+    fn sem_ui_a_csp_nao_libera_script_embutido() {
+        assert!(!csp(None).contains("sha256-"));
+        assert!(csp(None).contains("script-src 'self' 'wasm-unsafe-eval';"));
+    }
 }
