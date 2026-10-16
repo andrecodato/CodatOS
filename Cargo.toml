@@ -22,12 +22,21 @@ publish = false
 [workspace.dependencies]
 codatos-core = { path = "crates/core" }
 codatos-protocol = { path = "crates/protocol" }
+axum = { version = "0.8.9", features = ["ws"] }
 console_error_panic_hook = "0.1.7"
+futures-util = "0.3.34"
+getrandom = "0.4.3"
 leptos = { version = "0.8.22", features = ["csr"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
+subtle = "2.6.1"
 tauri = "2.12.4"
 tauri-build = "2.7.3"
+thiserror = "2.0.21"
+tokio = { version = "1.53.3", features = ["macros", "net", "rt-multi-thread", "sync", "time"] }
+tokio-tungstenite = "0.30.0"
+tower-http = { version = "0.7.1", features = ["fs", "set-header"] }
+tracing = "0.1.44"
 # Mesma versão que o Trunk baixa para o wasm-bindgen-cli (precisam bater).
 wasm-bindgen = "=0.2.129"
 web-sys = { version = "0.3.106", features = ["Navigator"] }
@@ -41,6 +50,7 @@ all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 module_name_repetitions = "allow"
 missing_errors_doc = "allow"
+must_use_candidate = "allow"
 
 [profile.release]
 lto = "thin"
