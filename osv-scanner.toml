@@ -8,3 +8,12 @@ reason = "paste: macro de build usada pelo Leptos 0.8"
 [[IgnoredVulns]]
 id = "RUSTSEC-2024-0370"
 reason = "proc-macro-error: via gtk-rs 0.18, usado pelo Tauri no Linux"
+
+# O cargo-deny não acusa este porque é "unsound" numa dependência indireta (padrão dele).
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0429"
+reason = "glib 0.18: VariantStrIter unsound; vem do gtk-rs 0.18 do Tauri no Linux, sem caminho para glib 0.20 no Tauri 2; o CodatOS não usa a API afetada"
+
+[[IgnoredVulns]]
+id = "GHSA-wrw7-89jp-8q8g"
+reason = "Alias GHSA do RUSTSEC-2024-0429 (glib 0.18)"
