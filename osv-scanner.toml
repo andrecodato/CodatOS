@@ -1,0 +1,10 @@
+# Mesmos avisos ignorados no deny.toml (sem manutenção, transitivos, sem versão alternativa).
+# Rever a cada atualização de Leptos/Tauri.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0436"
+reason = "paste: macro de build usada pelo Leptos 0.8"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0370"
+reason = "proc-macro-error: via gtk-rs 0.18, usado pelo Tauri no Linux"
