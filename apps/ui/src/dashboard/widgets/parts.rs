@@ -44,3 +44,10 @@ pub fn Meter(label: &'static str, value: f64, detail: String) -> impl IntoView {
         </div>
     }
 }
+
+/// Ponto de estado: verde ligado, cinza parado. O texto ao lado diz o estado.
+#[component]
+pub fn Dot(on: bool) -> impl IntoView {
+    let color = if on { "bg-success" } else { "bg-subtle" };
+    view! { <span class=format!("size-2 shrink-0 rounded-full {color}") aria-hidden="true"></span> }
+}
