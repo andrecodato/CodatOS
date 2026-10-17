@@ -16,28 +16,49 @@ use serde_json::{Value, json};
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 
+use crate::channel::{self, Outgoing, Route};
 use crate::hub::{Hub, Subscription};
 
 /// Assinaturas simultâneas por conexão.
 const MAX_SUBSCRIPTIONS: usize = 64;
+/// Canais binários abertos por conexão (abas de terminal, transferências).
+const MAX_CHANNELS: usize = 32;
 
 /// Estado de uma conexão WebSocket: as assinaturas dela e a fila de saída.
 #[derive(Debug)]
 pub(crate) struct Connection {
     hub: Arc<Hub>,
-    out: mpsc::Sender<String>,
+    out: mpsc::Sender<Outgoing>,
     subs: HashMap<String, JoinHandle<()>>,
     /// Chamadas de métodos em andamento; canceladas se a conexão fechar.
     calls: Vec<JoinHandle<()>>,
+    channels: HashMap<u32, Route>,
+    next_channel: u32,
 }
 
 impl Connection {
-    pub(crate) fn new(hub: Arc<Hub>, out: mpsc::Sender<String>) -> Self {
+    pub(crate) fn new(hub: Arc<Hub>, out: mpsc::Sender<Outgoing>) -> Self {
         Self {
             hub,
             out,
             subs: HashMap::new(),
             calls: Vec::new(),
+            channels: HashMap::new(),
+            next_channel: 1,
+        }
+    }
+
+    /// Repassa um frame binário ao dono do canal. Frames de canais que não existem (ou já
+    /// fecharam) são ignorados.
+    pub(crate) async fn handle_binary(&mut self, bytes: &[u8]) {
+        let Some((id, frame)) = codatos_protocol::channel::decode(bytes) else {
+            return;
+        };
+        let Some(route) = self.channels.get(&id) else {
+            return;
+        };
+        if !route.deliver(frame).await {
+            self.channels.remove(&id);
         }
     }
 
@@ -64,6 +85,9 @@ impl Connection {
         if let Some(method) = self.hub.method(&request.method) {
             self.spawn_call(method, request.id, request.params.unwrap_or(Value::Null));
             return None;
+        }
+        if let Some(method) = self.hub.channel_method(&request.method) {
+            return self.open_channel(method, request.id, request.params.unwrap_or(Value::Null));
         }
         let result = self.dispatch(&request.method, request.params);
         let id = request.id?;
@@ -116,10 +140,58 @@ impl Connection {
                 Err(error) => Response::err(Some(id), error.into_rpc()),
             };
             let json = serde_json::to_string(&response).expect("Response sempre serializa");
-            let _ = out.send(json).await;
+            let _ = out.send(Outgoing::Text(json)).await;
         });
         self.calls.retain(|t| !t.is_finished());
         self.calls.push(task);
+    }
+
+    /// Abre um canal e roda o método numa tarefa, como [`Self::spawn_call`]; a resposta leva
+    /// `"channel": n`.
+    fn open_channel(
+        &mut self,
+        method: Arc<dyn channel::ChannelMethod>,
+        id: Option<Id>,
+        params: Value,
+    ) -> Option<Response> {
+        self.channels.retain(|_, route| !route.is_closed());
+        if self.channels.len() >= MAX_CHANNELS {
+            return id.map(|id| {
+                Response::err(
+                    Some(id),
+                    RpcError::new(
+                        INVALID_REQUEST,
+                        "too_many_channels",
+                        format!("Limite de {MAX_CHANNELS} canais por conexão"),
+                    ),
+                )
+            });
+        }
+        let channel_id = self.next_channel;
+        self.next_channel = self.next_channel.wrapping_add(1).max(1);
+        let (channel, route) = channel::pair(channel_id, self.out.clone());
+        self.channels.insert(channel_id, route);
+        let out = self.out.clone();
+        let task = tokio::spawn(async move {
+            let result = method.open(params, channel).await;
+            let Some(id) = id else { return };
+            let response = match result {
+                Ok(mut value) => {
+                    if let Value::Object(map) = &mut value {
+                        map.insert("channel".to_owned(), json!(channel_id));
+                    } else {
+                        value = json!({ "channel": channel_id });
+                    }
+                    Response::ok(Some(id), value)
+                }
+                Err(error) => Response::err(Some(id), error.into_rpc()),
+            };
+            let json = serde_json::to_string(&response).expect("Response sempre serializa");
+            let _ = out.send(Outgoing::Text(json)).await;
+        });
+        self.calls.retain(|t| !t.is_finished());
+        self.calls.push(task);
+        None
     }
 
     fn subscribe(&mut self, params: &SubscribeParams) -> Result<Value, RpcError> {
@@ -157,7 +229,7 @@ impl Drop for Connection {
 
 /// Repassa as amostras de uma assinatura para a fila de saída da conexão, respeitando o
 /// intervalo pedido. Se a fila estiver cheia, a amostra é descartada: a próxima chega logo.
-async fn forward(mut subscription: Subscription, sub: String, out: mpsc::Sender<String>) {
+async fn forward(mut subscription: Subscription, sub: String, out: mpsc::Sender<Outgoing>) {
     // Folga para uma amostra que chega um pouco antes do intervalo não ser pulada.
     let slack = subscription.interval / 10;
     let mut last_sent: Option<Instant> = None;
@@ -177,7 +249,7 @@ async fn forward(mut subscription: Subscription, sub: String, out: mpsc::Sender<
                 };
                 let event = Request::new(None, EVENT_METHOD, Some(json!(params)));
                 let json = serde_json::to_string(&event).expect("evento sempre serializa");
-                match out.try_send(json) {
+                match out.try_send(Outgoing::Text(json)) {
                     Ok(()) => last_sent = Some(Instant::now()),
                     Err(mpsc::error::TrySendError::Full(_)) => {}
                     Err(mpsc::error::TrySendError::Closed(_)) => break,

@@ -6,9 +6,11 @@
 //!
 //! Pelo WebSocket, `subscribe`/`unsubscribe` ligam a UI aos [`Collector`]s: cada tópico
 //! empurra notificações `event` enquanto alguém assina. Outros módulos acrescentam
-//! métodos JSON-RPC com [`Method`].
+//! métodos JSON-RPC com [`Method`], e canais binários (terminal, SFTP) com
+//! [`ChannelMethod`].
 
 mod auth;
+mod channel;
 mod collector;
 mod guard;
 mod hub;
@@ -16,6 +18,7 @@ mod method;
 mod rpc;
 mod server;
 
+pub use channel::{Channel, ChannelEvent, ChannelMethod, ChannelSender, Closed};
 pub use collector::{CollectError, CollectFuture, Collector, Intervals, MAX_INTERVAL};
 pub use method::{APP_ERROR, Method, MethodError, MethodFuture, params};
 
