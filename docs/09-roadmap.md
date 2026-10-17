@@ -78,7 +78,7 @@ flowchart LR
 
 | Risco | Impacto | Mitigação |
 |---|---|---|
-| Temperatura/energia no Windows exige driver | Widget incompleto | Modo sem privilégio + integração opcional com LibreHardwareMonitor ([Q-13](10-perguntas-em-aberto.md#sistema)) |
+| Temperatura/energia no Windows exige driver | Widget incompleto | Driver PawnIO instalado pelo CodatOS com um pedido de admin, lido pelo serviço `codatos-sensors` ([Q-13](10-perguntas-em-aberto.md#sistema)) |
 | Maturidade do Leptos (componentes, interop) | Ritmo da UI | Spike no M0; componentes próprios (gráficos, grade); API do núcleo independente da UI ([ADR-0002](adr/0002-tauri-e-leptos.md)) |
 | Cross-compilação do app Windows a partir do WSL (`cargo-xwin`) não funcionar bem com o Tauri | Testes de recursos do Windows mais lentos | Validar logo no M0; alternativa: CI com runner Windows ([Q-35](10-perguntas-em-aberto.md#infraestrutura-e-custos)) |
 | Custo de assinatura de código (Windows/Apple) | Alertas do SmartScreen/Gatekeeper | Começar com Windows; avaliar Azure Trusted Signing e conta Apple Developer ([Q-29](10-perguntas-em-aberto.md#infraestrutura-e-custos)) |

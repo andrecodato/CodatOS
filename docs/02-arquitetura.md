@@ -175,6 +175,7 @@ codatos/
 ├── crates/
 │   ├── core/           # Orquestração: runtime, API local (Axum), eventos, agendador
 │   ├── collectors/     # sysinfo, NVML, WSL, Docker, git, editores
+│   ├── sensors/        # Serviço do Windows que lê a CPU pelo driver PawnIO
 │   ├── connections/    # SSH, SFTP, túneis, PTY local (russh, portable-pty)
 │   ├── vault/          # Cofre: chaves, cifragem de itens, keychain do SO
 │   ├── crypto/         # Primitivas e formatos (Argon2id, XChaCha20, X25519, Noise)
