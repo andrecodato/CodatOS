@@ -16,6 +16,10 @@ pub const METHOD_GROUP_DELETE: &str = "connections.deleteGroup";
 /// Senha nova exige o cofre aberto (`vault_locked`).
 pub const METHOD_IDENTITY_SAVE: &str = "connections.saveIdentity";
 pub const METHOD_IDENTITY_DELETE: &str = "connections.deleteIdentity";
+/// Importa os hosts de um `ssh_config` ([`ImportSshConfig`]); devolve o [`ImportReport`].
+pub const METHOD_SSH_CONFIG_IMPORT: &str = "connections.importSshConfig";
+/// Texto `ssh_config` com os hosts cadastrados ([`SshConfigText`]). Não grava arquivo.
+pub const METHOD_SSH_CONFIG_EXPORT: &str = "connections.exportSshConfig";
 /// Gera uma chave SSH nova ([`GenerateKey`]); devolve o [`SshKey`].
 pub const METHOD_KEY_GENERATE: &str = "keys.generate";
 /// Importa uma chave OpenSSH ou PuTTY ([`ImportKey`]); devolve o [`SshKey`].
@@ -227,6 +231,32 @@ pub struct ImportKey {
 pub struct RenameKey {
     pub id: String,
     pub name: String,
+}
+
+/// Parâmetros de `connections.importSshConfig`.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ImportSshConfig {
+    /// Texto colado pelo usuário; ausente lê o `~/.ssh/config` deste PC.
+    #[serde(default)]
+    pub text: Option<String>,
+}
+
+/// O que a importação fez. Hosts com nome já cadastrado ficam como estão.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportReport {
+    pub hosts: u32,
+    pub identities: u32,
+    pub keys: u32,
+    /// Nomes de hosts que já existiam.
+    pub skipped: Vec<String>,
+    pub warnings: Vec<String>,
+}
+
+/// Resultado de `connections.exportSshConfig`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SshConfigText {
+    pub text: String,
 }
 
 /// Parâmetros dos métodos `delete*`.
