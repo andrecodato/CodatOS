@@ -12,6 +12,10 @@ yanked = "deny"
 ignore = [
   { id = "RUSTSEC-2024-0436", reason = "paste: macro de build usada pelo Leptos 0.8" },
   { id = "RUSTSEC-2024-0370", reason = "proc-macro-error: via gtk-rs 0.18, usado pelo Tauri no Linux" },
+  # zbus 5 (D-Bus no Linux) via tauri-plugin-opener e single-instance; as macros foram para o zbus 6, que o Tauri ainda não usa.
+  { id = "RUSTSEC-2026-0370", reason = "zvariant: sem manutenção avulsa, via zbus 5 dos plugins do Tauri" },
+  { id = "RUSTSEC-2026-0371", reason = "zbus_names: sem manutenção avulsa, via zbus 5 dos plugins do Tauri" },
+  { id = "RUSTSEC-2026-0372", reason = "zvariant_derive: sem manutenção avulsa, via zbus 5 dos plugins do Tauri" },
 ]
 
 [licenses]
