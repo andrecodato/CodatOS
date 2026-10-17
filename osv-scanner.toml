@@ -17,3 +17,15 @@ reason = "glib 0.18: VariantStrIter unsound; vem do gtk-rs 0.18 do Tauri no Linu
 [[IgnoredVulns]]
 id = "GHSA-wrw7-89jp-8q8g"
 reason = "Alias GHSA do RUSTSEC-2024-0429 (glib 0.18)"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0370"
+reason = "zvariant: sem manutenção avulsa (foi para o zbus 6); vem do zbus 5 dos plugins do Tauri, sem versão alternativa"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0371"
+reason = "zbus_names: sem manutenção avulsa (foi para o zbus 6); vem do zbus 5 dos plugins do Tauri, sem versão alternativa"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0372"
+reason = "zvariant_derive: sem manutenção avulsa (foi para o zbus 6); vem do zbus 5 dos plugins do Tauri, sem versão alternativa"
