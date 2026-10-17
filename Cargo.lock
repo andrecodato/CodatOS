@@ -723,8 +723,10 @@ version = "0.0.0"
 dependencies = [
  "codatos-protocol",
  "console_error_panic_hook",
+ "futures-channel",
  "js-sys",
  "leptos",
+ "serde",
  "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",

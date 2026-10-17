@@ -29,6 +29,7 @@ codatos-store = { path = "crates/store" }
 axum = { version = "0.8.9", features = ["ws"] }
 base64 = "0.22.1"
 console_error_panic_hook = "0.1.7"
+futures-channel = "0.3.34"
 futures-util = "0.3.34"
 getrandom = "0.4.3"
 js-sys = "0.3.106"
@@ -59,16 +60,24 @@ wasm-bindgen-futures = "0.4.79"
 winreg = "0.56.0"
 web-sys = { version = "0.3.106", features = [
     "CloseEvent",
+    "Crypto",
+    "Document",
+    "DomRect",
+    "Element",
+    "EventTarget",
     "Headers",
     "History",
+    "KeyboardEvent",
     "Location",
     "MessageEvent",
     "Navigator",
+    "PointerEvent",
     "Request",
     "RequestCredentials",
     "RequestInit",
     "Response",
     "UrlSearchParams",
+    "VisibilityState",
     "WebSocket",
 ] }
 
