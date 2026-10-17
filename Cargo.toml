@@ -50,6 +50,7 @@ tracing = "0.1.44"
 # Mesma versão que o Trunk baixa para o wasm-bindgen-cli (precisam bater).
 wasm-bindgen = "=0.2.129"
 wasm-bindgen-futures = "0.4.79"
+winreg = "0.56.0"
 web-sys = { version = "0.3.106", features = [
     "CloseEvent",
     "Headers",

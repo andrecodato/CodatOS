@@ -7,6 +7,7 @@ mod cpu_sensors;
 mod disks;
 mod gpu;
 mod system;
+mod wsl;
 
 use std::sync::Arc;
 
@@ -16,14 +17,20 @@ pub use cpu_sensors::CpuSensorsCollector;
 pub use disks::DisksCollector;
 pub use gpu::GpuCollector;
 pub use system::{SystemInfoCollector, SystemMetricsCollector};
+#[cfg(windows)]
+pub use wsl::WslCollector;
 
 /// Coletores disponíveis nesta plataforma, na ordem em que aparecem em `session.hello`.
 pub fn all() -> Vec<Arc<dyn Collector>> {
-    vec![
+    #[allow(unused_mut)]
+    let mut list: Vec<Arc<dyn Collector>> = vec![
         Arc::new(SystemMetricsCollector::default()),
         Arc::new(SystemInfoCollector),
         Arc::new(DisksCollector),
         Arc::new(GpuCollector::default()),
         Arc::new(CpuSensorsCollector),
-    ]
+    ];
+    #[cfg(windows)]
+    list.push(Arc::new(WslCollector::default()));
+    list
 }

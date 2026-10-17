@@ -16,7 +16,10 @@ nvml-wrapper.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sysinfo.workspace = true
-tokio = { workspace = true, features = ["io-util"] }
+tokio = { workspace = true, features = ["io-util", "process"] }
+
+[target.'cfg(windows)'.dependencies]
+winreg.workspace = true
 
 [lints]
 workspace = true
