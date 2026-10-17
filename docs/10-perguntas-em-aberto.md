@@ -1,6 +1,6 @@
 # 10 · Perguntas em aberto
 
-> **Status:** Bloqueantes respondidas (2026-10-15); demais aguardando · **Atualizado:** 2026-10-15
+> **Status:** Bloqueantes respondidas (2026-10-15); demais aguardando · **Atualizado:** 2026-10-17
 > ← [Roadmap](09-roadmap.md) · [Índice](README.md) · Próximo: [Glossário](11-glossario.md) →
 
 Cada pergunta tem uma **proposta padrão** — se não houver resposta, seguimos com ela. Ao decidir, registre a resposta aqui e atualize os documentos indicados (ou crie um ADR).
@@ -51,8 +51,8 @@ Cada pergunta tem uma **proposta padrão** — se não houver resposta, seguimos
 | ID | Pergunta | Proposta padrão | Impacto |
 |---|---|---|---|
 | Q-13 | ✅ **Decidido em 2026-10-15**: sem admin por padrão; temperatura e watts da CPU vêm do **LibreHardwareMonitor** (servidor web local, `http://127.0.0.1:8085/data.json`) quando ele estiver rodando. Sem driver nem serviço privilegiado próprio na 1.0 (reavaliar depois); HWiNFO pode virar segunda fonte. | — | [Sistema](modulos/sistema.md#temperatura-e-energia-no-windows) |
-| Q-14 | Além de ver, quais controles você quer: iniciar/parar WSL e containers (sim), matar processos, suspender/desligar o PC, Wake-on-LAN? | WSL/Docker no M1–M2; energia e processos no M3 | 🟢 |
-| Q-15 | Onde ficam seus projetos (pastas raiz, dentro do WSL?) e quais editores você usa? | `C:\dev`, `~/` nas distros WSL; VS Code e Cursor | 🟢 [Projetos](modulos/projetos.md) |
+| Q-14 | ✅ **Decidido em 2026-10-17**: iniciar/encerrar distros WSL no M1, ações em containers no M2, energia e processos no M3. | — | [Sistema](modulos/sistema.md) |
+| Q-15 | ✅ **Decidido em 2026-10-17**: raízes `C:\dev` e `~/` nas distros WSL; editores **VS Code** e **JetBrains** (sem Cursor). | — | [Projetos](modulos/projetos.md) |
 
 ## Contas, sync e planos
 
@@ -77,7 +77,7 @@ Cada pergunta tem uma **proposta padrão** — se não houver resposta, seguimos
 |---|---|---|---|
 | Q-23 | ✅ **Decidido em 2026-10-15**: **três níveis por aparelho pareado**, alteráveis no PC: **Ver** (só leitura), **Controlar** (padrão: + criar tarefa/lançamento, WSL/containers, bloquear/suspender/reiniciar/desligar com biometria) e **Total** (+ terminal e SSH através do PC, com biometria e tempo limite). SFTP e Wake-on-LAN depois da 1.0. | — | [Acesso remoto](modulos/acesso-remoto.md#capacidades-remotas-proposta) |
 | Q-24 | PWA basta no celular ou quer app nativo (Tauri mobile) no futuro? | PWA na 1.0 | 🟢 |
-| Q-25 | Acesso pelo navegador **em outro PC da rede local** é gratuito? | Sim (só o remoto pela internet é Pro) | 🟢 |
+| Q-25 | ✅ **Decidido em 2026-10-17**: acesso pelo navegador **em outro PC da rede local** é gratuito; só o remoto pela internet é Pro. O M1 entrega apenas o navegador no próprio PC (`127.0.0.1`). | — | — |
 
 ## Open source e comunidade
 
@@ -93,7 +93,7 @@ Cada pergunta tem uma **proposta padrão** — se não houver resposta, seguimos
 | Q-28 | Onde hospedar a nuvem? Região? | VPS Hetzner (custo) ou Fly.io com região GRU (São Paulo) | 🟡 |
 | Q-29 | Orçamento para assinatura de código? (Apple Developer: US$ 99/ano; Windows: Azure Trusted Signing ou certificado OV/EV.) Sem isso, Windows e macOS mostram alertas ao instalar. | Windows primeiro; Apple antes de divulgar para macOS | 🟡 [Roadmap → riscos](09-roadmap.md#riscos) |
 | Q-35 | ✅ **WSL2 + Ubuntu 26.04 configurados em 2026-10-14** (ver [`scripts/wsl/`](../scripts/wsl/README.md)). ✅ **Decidido em 2026-10-15**: testar no início do M0 a compilação do app Windows no WSL com `cargo-xwin`; se falhar, instalar Rust/MSVC também no Windows para o dia a dia. O MSI assinado sai do CI em qualquer caso. | — | M0 — [Stack](03-stack.md#ambiente-de-desenvolvimento) |
-| Q-30 | Clima: Open-Meteo é gratuito só para uso não comercial. Usar MET Norway (permite uso comercial com atribuição) ou contratar o Open-Meteo quando houver plano pago? | Open-Meteo no início, revisar antes do M4 | 🟢 [Integrações](modulos/integracoes.md#clima) |
+| Q-30 | ✅ **Decidido em 2026-10-17**: Open-Meteo no início (uso não comercial); revisar antes do M4, com MET Norway como alternativa. | — | [Integrações](modulos/integracoes.md#clima) |
 
 ## Stack
 

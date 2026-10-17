@@ -17,7 +17,7 @@ Responder "em que eu estava trabalhando?" em um segundo: descobrir repositórios
 | ID | Requisito | Prioridade | Marco |
 |---|---|---|---|
 | RF-PROJ-001 | Pastas raiz configuráveis (Windows/macOS/Linux e caminhos dentro de distros WSL) para descobrir repositórios git, com profundidade máxima e padrões ignorados (`node_modules`, `target`, `.venv`…). | Deve | M1 |
-| RF-PROJ-002 | Importar projetos recentes de editores: VS Code, Cursor, JetBrains (e Visual Studio — Poderia). | Deveria | M1 |
+| RF-PROJ-002 | Importar projetos recentes de editores: VS Code e JetBrains (Cursor e Visual Studio — Poderia; [Q-15](../10-perguntas-em-aberto.md#sistema)). | Deveria | M1 |
 | RF-PROJ-003 | Lista ordenada por último acesso/commit: nome, caminho, branch, alterações pendentes, ahead/behind, último commit, linguagem principal. | Deve | M1 |
 | RF-PROJ-004 | Ações: abrir no editor (configurável), abrir terminal, abrir no explorador, copiar caminho, abrir o remoto no navegador (GitHub/GitLab). | Deve | M1 |
 | RF-PROJ-005 | Favoritar/fixar, tags e ocultar projetos. | Deveria | M1 |
