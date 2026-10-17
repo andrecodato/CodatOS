@@ -1,0 +1,5 @@
+//! Componentes da casca da janela.
+
+pub mod icon;
+pub mod sidebar;
+pub mod topbar;

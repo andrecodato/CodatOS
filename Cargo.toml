@@ -23,12 +23,15 @@ publish = false
 codatos-core = { path = "crates/core" }
 codatos-protocol = { path = "crates/protocol" }
 axum = { version = "0.8.9", features = ["ws"] }
+base64 = "0.22.1"
 console_error_panic_hook = "0.1.7"
 futures-util = "0.3.34"
 getrandom = "0.4.3"
+js-sys = "0.3.106"
 leptos = { version = "0.8.22", features = ["csr"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
+sha2 = "0.10.9"
 subtle = "2.6.1"
 tauri = "2.12.4"
 tauri-build = "2.7.3"
@@ -39,7 +42,20 @@ tower-http = { version = "0.7.1", features = ["fs", "set-header"] }
 tracing = "0.1.44"
 # Mesma versão que o Trunk baixa para o wasm-bindgen-cli (precisam bater).
 wasm-bindgen = "=0.2.129"
-web-sys = { version = "0.3.106", features = ["Navigator"] }
+wasm-bindgen-futures = "0.4.79"
+web-sys = { version = "0.3.106", features = [
+    "CloseEvent",
+    "Headers",
+    "History",
+    "Location",
+    "MessageEvent",
+    "Request",
+    "RequestCredentials",
+    "RequestInit",
+    "Response",
+    "UrlSearchParams",
+    "WebSocket",
+] }
 
 [workspace.lints.rust]
 unsafe_code = "deny"
