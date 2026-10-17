@@ -17,22 +17,28 @@ use codatos_protocol::api::{
     API_VERSION, Health, SESSION_COOKIE, SessionRequest, WS_PROTOCOL, WS_TOKEN_PROTOCOL_PREFIX,
 };
 use codatos_protocol::rpc::Problem;
+use futures_util::{SinkExt as _, StreamExt as _};
 use sha2::{Digest, Sha256};
 use tokio::net::TcpListener;
-use tokio::sync::oneshot;
+use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::set_header::SetResponseHeaderLayer;
 
 use crate::auth::Auth;
+use crate::collector::Collector;
 use crate::guard::{self, Allowed};
-use crate::rpc;
+use crate::hub::Hub;
+use crate::rpc::Connection;
 
 /// Porta padrão da API local (`docs/06-api-e-protocolos.md`).
 pub const DEFAULT_PORT: u16 = codatos_protocol::api::DEFAULT_PORT;
 
 /// Tamanho máximo de uma mensagem no WebSocket (1 MiB).
 const MAX_WS_MESSAGE: usize = 1 << 20;
+
+/// Mensagens esperando envio por conexão; eventos além disso são descartados.
+const OUTBOX: usize = 64;
 
 /// CSP da UI servida ao navegador: nada de CDN, só o próprio núcleo (Segurança §8).
 /// `{scripts}` recebe os hashes dos scripts embutidos no `index.html` (ver [`csp`]).
@@ -48,6 +54,8 @@ pub struct ServerConfig {
     pub ui_dir: Option<PathBuf>,
     /// Origens a mais aceitas, como a do `trunk serve` no modo dev.
     pub extra_origins: Vec<String>,
+    /// Coletores dos tópicos de `subscribe` (um por tópico).
+    pub collectors: Vec<Arc<dyn Collector>>,
 }
 
 impl Default for ServerConfig {
@@ -56,6 +64,7 @@ impl Default for ServerConfig {
             port: DEFAULT_PORT,
             ui_dir: None,
             extra_origins: Vec::new(),
+            collectors: Vec::new(),
         }
     }
 }
@@ -116,7 +125,11 @@ pub async fn start(config: ServerConfig) -> Result<RunningServer, Error> {
     let auth = Arc::new(Auth::new());
     let allowed = Arc::new(Allowed::new(addr.port(), &config.extra_origins));
     let csp = csp(config.ui_dir.as_deref());
-    let app = router(Arc::clone(&auth), allowed, config.ui_dir.as_deref(), &csp);
+    let state = AppState {
+        auth: Arc::clone(&auth),
+        hub: Arc::new(Hub::new(&config.collectors)),
+    };
+    let app = router(state, allowed, config.ui_dir.as_deref(), &csp);
 
     let (shutdown, stop) = oneshot::channel::<()>();
     let task = tokio::spawn(async move {
@@ -140,14 +153,15 @@ pub async fn start(config: ServerConfig) -> Result<RunningServer, Error> {
 #[derive(Debug, Clone)]
 struct AppState {
     auth: Arc<Auth>,
+    hub: Arc<Hub>,
 }
 
-fn router(auth: Arc<Auth>, allowed: Arc<Allowed>, ui_dir: Option<&Path>, csp: &str) -> Router {
+fn router(state: AppState, allowed: Arc<Allowed>, ui_dir: Option<&Path>, csp: &str) -> Router {
     let api = Router::new()
         .route("/api/v1/health", get(health))
         .route("/api/v1/session", post(session))
         .route("/rpc", get(rpc_socket))
-        .with_state(AppState { auth });
+        .with_state(state);
 
     let app = match ui_dir {
         Some(dir) => api
@@ -249,18 +263,30 @@ async fn rpc_socket(
     }
     ws.protocols([WS_PROTOCOL])
         .max_message_size(MAX_WS_MESSAGE)
-        .on_upgrade(serve_socket)
+        .on_upgrade(move |socket| serve_socket(socket, state.hub))
 }
 
-async fn serve_socket(mut socket: WebSocket) {
-    while let Some(Ok(message)) = socket.recv().await {
+/// Lê pedidos e responde; respostas e eventos das assinaturas saem pela mesma fila.
+async fn serve_socket(socket: WebSocket, hub: Arc<Hub>) {
+    let (mut sink, mut stream) = socket.split();
+    let (out, mut outbox) = mpsc::channel::<String>(OUTBOX);
+    let writer = tokio::spawn(async move {
+        while let Some(json) = outbox.recv().await {
+            if sink.send(Message::Text(json.into())).await.is_err() {
+                break;
+            }
+        }
+    });
+
+    let mut connection = Connection::new(hub, out.clone());
+    while let Some(Ok(message)) = stream.next().await {
         match message {
             Message::Text(text) => {
-                let Some(response) = rpc::handle_text(text.as_str()) else {
+                let Some(response) = connection.handle_text(text.as_str()) else {
                     continue;
                 };
                 let json = serde_json::to_string(&response).expect("Response sempre serializa");
-                if socket.send(Message::Text(json.into())).await.is_err() {
+                if out.send(json).await.is_err() {
                     break;
                 }
             }
@@ -269,6 +295,10 @@ async fn serve_socket(mut socket: WebSocket) {
             _ => {}
         }
     }
+    // Encerra as assinaturas antes do escritor, que acaba quando a fila fecha.
+    drop(connection);
+    drop(out);
+    let _ = writer.await;
 }
 
 /// Janela do app: token por `Authorization: Bearer` ou subprotocolo `codatos.token.*`.
