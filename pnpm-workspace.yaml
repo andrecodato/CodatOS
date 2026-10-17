@@ -1,5 +1,6 @@
 # Workspace pnpm (ADR-0001). O Tailwind da UI vem pelo CLI standalone que o Trunk
-# baixa (apps/ui/Trunk.toml), então no M0 ninguém instala pacote npm;
-# apps/cloud e apps/site entram nos marcos deles.
+# baixa (apps/ui/Trunk.toml); o site (apps/site, ADR-0008) é o único com pacotes npm
+# por enquanto. apps/cloud entra no marco dele.
 packages:
   - apps/ui
+  - apps/site

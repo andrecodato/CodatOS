@@ -1,0 +1,44 @@
+name: Site
+
+# Build do site estático (apps/site, ADR-0008). Publicar fica para quando houver domínio.
+on:
+  pull_request:
+    paths:
+      - "apps/site/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/site.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/site/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/site.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: build do site
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-node@v6.0.0
+        with:
+          node-version: 24
+
+      # Mesma versão do packageManager do package.json da raiz.
+      - run: npm install --global pnpm@12.11.0
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @codatos/site build

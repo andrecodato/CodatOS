@@ -1,0 +1,90 @@
+---
+// Prévia ilustrativa do app (dados fictícios), igual à do protótipo.
+---
+
+<div class="preview-wrap" data-no-wave aria-label="Prévia do dashboard do CodatOS" role="img">
+  <div class="preview">
+    <div class="window" aria-hidden="true">
+      <div class="titlebar"><i></i><i></i><i></i><span>CodatOS</span></div>
+      <div class="app">
+        <aside class="side">
+          <div class="brand"><svg><use href="#logo" /></svg>CodatOS</div>
+          <div class="si active"><svg class="icon"><use href="#i-dash" /></svg>Dashboard</div>
+          <div class="si"><svg class="icon"><use href="#i-wallet" /></svg>Financeiro</div>
+          <div class="si"><svg class="icon"><use href="#i-check" /></svg>TaskHub</div>
+          <div class="si"><svg class="icon"><use href="#i-terminal" /></svg>Conexões</div>
+          <div class="si"><svg class="icon"><use href="#i-folder" /></svg>Projetos</div>
+          <div class="si"><svg class="icon"><use href="#i-gear" /></svg>Configurações</div>
+        </aside>
+        <div class="main">
+          <div class="greet">
+            <h3>Olá, Andre 👋</h3>
+            <p>Aqui está um resumo do seu dia.</p>
+          </div>
+          <div class="cards">
+            <div class="card">
+              <h4>Saldo total</h4>
+              <div class="metric">R$ 12.480,32</div>
+              <div class="sub up">↑ 12% este mês</div>
+              <svg class="spark" viewBox="0 0 120 36" preserveAspectRatio="none">
+                <path d="M0 30 L12 26 L24 28 L36 20 L48 22 L60 15 L72 18 L84 10 L96 12 L108 6 L120 8 L120 36 L0 36 Z" fill="url(#spark-grad)" />
+                <path d="M0 30 L12 26 L24 28 L36 20 L48 22 L60 15 L72 18 L84 10 L96 12 L108 6 L120 8" fill="none" stroke="#22C55E" stroke-width="1.6" vector-effect="non-scaling-stroke" />
+              </svg>
+            </div>
+            <div class="card">
+              <h4>Tarefas</h4>
+              <div class="metric">12</div>
+              <div class="sub">3 em andamento · 9 concluídas</div>
+              <div class="bar"><span style="width:75%"></span></div>
+              <div class="rows">
+                <div class="row"><span class="dot" style="border:1.5px solid #3B82F6"></span>Revisar PR do projeto<span class="when" style="color:#F43F5E">Hoje</span></div>
+                <div class="row"><span class="dot" style="border:1.5px solid #3B82F6"></span>Estudar Rust<span class="when" style="color:#F43F5E">Hoje</span></div>
+              </div>
+            </div>
+            <div class="card hide-sm">
+              <h4>Uso do PC</h4>
+              <div class="ring-row">
+                <div class="ring">
+                  <svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#1A2440" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="#3B82F6" stroke-width="4" stroke-linecap="round" stroke-dasharray="13.6 113.1"/></svg>
+                  <b>12%</b>CPU · 45°C
+                </div>
+                <div class="ring">
+                  <svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#1A2440" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="#22C55E" stroke-width="4" stroke-linecap="round" stroke-dasharray="54.3 113.1"/></svg>
+                  <b>48%</b>RAM
+                </div>
+                <div class="ring">
+                  <svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#1A2440" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="#8B7BFF" stroke-width="4" stroke-linecap="round" stroke-dasharray="9 113.1"/></svg>
+                  <b>8%</b>GPU · 42°C
+                </div>
+              </div>
+            </div>
+            <div class="card hide-sm">
+              <h4>WSL em execução</h4>
+              <div class="rows" style="margin-top:12px">
+                <div class="row"><span class="dot" style="background:#22C55E"></span>Ubuntu-22.04<span class="when sub">2h 14min</span></div>
+                <div class="row"><span class="dot" style="background:#22C55E"></span>docker-desktop<span class="when sub">3 containers</span></div>
+                <div class="row"><span class="dot" style="background:#22C55E"></span>ubuntu-app<span class="when sub">2 containers</span></div>
+                <div class="row"><span class="dot" style="background:#334155"></span>Debian<span class="when sub">parada</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="cards">
+            <div class="card wide">
+              <h4>Discos</h4>
+              <div class="disk"><div><span>C: (SSD)</span><span>120 GB / 512 GB</span></div><div class="bar"><span style="width:24%"></span></div></div>
+              <div class="disk"><div><span>D: (HDD)</span><span>320 GB / 1 TB</span></div><div class="bar"><span style="width:32%"></span></div></div>
+            </div>
+            <div class="card wide hide-sm">
+              <h4>Projetos recentes</h4>
+              <div class="rows">
+                <div class="row"><svg class="icon" style="width:14px;height:14px;color:#60A5FA"><use href="#i-folder"/></svg>codatos<span class="when sub">hoje</span></div>
+                <div class="row"><svg class="icon" style="width:14px;height:14px;color:#60A5FA"><use href="#i-folder"/></svg>taskhub<span class="when sub">ontem</span></div>
+                <div class="row"><svg class="icon" style="width:14px;height:14px;color:#60A5FA"><use href="#i-folder"/></svg>home-lab<span class="when sub">3 dias atrás</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
