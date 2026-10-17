@@ -21,6 +21,7 @@ path = "src/main.rs"
 tauri-build.workspace = true
 
 [dependencies]
+codatos-collectors.workspace = true
 codatos-core.workspace = true
 codatos-protocol.workspace = true
 serde.workspace = true

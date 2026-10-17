@@ -3,6 +3,7 @@ resolver = "3"
 members = [
   "apps/desktop/src-tauri",
   "apps/ui",
+  "crates/collectors",
   "crates/core",
   "crates/protocol",
 ]
@@ -20,6 +21,7 @@ publish = false
 # (Axum no núcleo, Leptos na UI, Tauri no desktop) e os crates herdam com
 # `dep = { workspace = true }`.
 [workspace.dependencies]
+codatos-collectors = { path = "crates/collectors" }
 codatos-core = { path = "crates/core" }
 codatos-protocol = { path = "crates/protocol" }
 axum = { version = "0.8.9", features = ["ws"] }
@@ -33,6 +35,7 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 sha2 = "0.10.9"
 subtle = "2.6.1"
+sysinfo = { version = "0.39.6", default-features = false, features = ["system", "disk", "network"] }
 tauri = { version = "2.12.4", features = ["tray-icon"] }
 tauri-build = "2.7.3"
 tauri-plugin-autostart = "2.7.0"
