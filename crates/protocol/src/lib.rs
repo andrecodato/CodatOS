@@ -3,6 +3,7 @@
 //! Fonte da verdade dos contratos (ADR-0001). Ver `docs/06-api-e-protocolos.md`.
 
 pub mod api;
+pub mod channel;
 pub mod connections;
 pub mod dashboard;
 pub mod projects;

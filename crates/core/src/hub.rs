@@ -17,6 +17,7 @@ use serde_json::Value;
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
 
+use crate::channel::ChannelMethod;
 use crate::collector::Collector;
 use crate::method::Method;
 
@@ -30,11 +31,16 @@ pub(crate) type Sample = Arc<Result<Value, Problem>>;
 pub(crate) struct Hub {
     topics: BTreeMap<&'static str, Arc<Topic>>,
     methods: BTreeMap<&'static str, Arc<dyn Method>>,
+    channel_methods: BTreeMap<&'static str, Arc<dyn ChannelMethod>>,
     next_id: AtomicU64,
 }
 
 impl Hub {
-    pub(crate) fn new(collectors: &[Arc<dyn Collector>], methods: &[Arc<dyn Method>]) -> Self {
+    pub(crate) fn new(
+        collectors: &[Arc<dyn Collector>],
+        methods: &[Arc<dyn Method>],
+        channel_methods: &[Arc<dyn ChannelMethod>],
+    ) -> Self {
         let mut topics = BTreeMap::new();
         for collector in collectors {
             let name = collector.topic();
@@ -53,20 +59,37 @@ impl Hub {
             }
             by_name.insert(name, Arc::clone(method));
         }
+        let mut channels = BTreeMap::new();
+        for method in channel_methods {
+            let name = method.name();
+            if by_name.contains_key(name) || channels.contains_key(name) {
+                tracing::warn!(method = name, "método repetido; fica o primeiro");
+                continue;
+            }
+            channels.insert(name, Arc::clone(method));
+        }
         Self {
             topics,
             methods: by_name,
+            channel_methods: channels,
             next_id: AtomicU64::new(1),
         }
+    }
+
+    pub(crate) fn channel_method(&self, name: &str) -> Option<Arc<dyn ChannelMethod>> {
+        self.channel_methods.get(name).cloned()
     }
 
     pub(crate) fn method(&self, name: &str) -> Option<Arc<dyn Method>> {
         self.methods.get(name).cloned()
     }
 
-    /// Nomes dos métodos registrados, em ordem.
+    /// Nomes dos métodos registrados (com os que abrem canal), em ordem.
     pub(crate) fn methods(&self) -> impl Iterator<Item = &'static str> + '_ {
-        self.methods.keys().copied()
+        self.methods
+            .keys()
+            .chain(self.channel_methods.keys())
+            .copied()
     }
 
     /// Nomes dos tópicos disponíveis, em ordem.
