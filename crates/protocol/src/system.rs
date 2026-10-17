@@ -85,7 +85,8 @@ pub enum DiskKind {
     Unknown,
 }
 
-/// GPUs NVIDIA via NVML (RF-SYS-003). Sem driver NVIDIA, o tópico responde `unavailable`.
+/// GPUs (RF-SYS-003): NVIDIA via NVML; AMD e Intel via LibreHardwareMonitor no Windows e
+/// `amdgpu` no Linux. Sem nenhuma fonte, o tópico responde `unavailable` ou `lhm_not_running`.
 pub const TOPIC_GPU: &str = "system.gpu";
 /// Temperatura e potência da CPU (Q-13). No Windows vêm do LibreHardwareMonitor.
 pub const TOPIC_CPU_SENSORS: &str = "system.cpuSensors";

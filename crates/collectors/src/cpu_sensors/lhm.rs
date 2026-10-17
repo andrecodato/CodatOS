@@ -1,32 +1,20 @@
-//! Leitura do servidor web do LibreHardwareMonitor (`http://127.0.0.1:8085/data.json`).
-//!
-//! O JSON é uma árvore: máquina → hardware (CPU, GPU…) → grupo (Temperatures, Powers…) →
-//! sensor. Versões novas trazem `SensorId` (`/amdcpu/0/temperature/2`) e as antigas só o
-//! texto do grupo; os valores vêm como texto com unidade e, no Windows em pt-BR, com
-//! vírgula decimal (`"45,0 °C"`).
+//! Temperatura e potência da CPU lidas do LibreHardwareMonitor (ver [`crate::lhm`]).
 
 use std::net::SocketAddr;
-use std::time::Duration;
 
 use codatos_core::CollectError;
 use codatos_protocol::system::{CpuSensors, SensorSource};
 use serde_json::Value;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpStream;
 
-#[cfg_attr(not(windows), allow(dead_code))]
-pub(super) const DEFAULT_ADDR: SocketAddr =
-    SocketAddr::new(std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST), 8085);
-
-/// Tamanho máximo da resposta (a árvore completa costuma ter 100–300 KB).
-const MAX_RESPONSE: u64 = 8 << 20;
+use crate::lhm::{self, Kind, parse_value};
 
 #[cfg_attr(not(windows), allow(dead_code))]
 pub(super) async fn read(addr: SocketAddr) -> Result<CpuSensors, CollectError> {
-    let body = fetch(addr).await?;
-    let tree: Value = serde_json::from_slice(&body).map_err(|_| {
-        CollectError::new("lhm_invalid", "Resposta inválida do LibreHardwareMonitor")
-    })?;
+    let tree = lhm::tree(
+        addr,
+        "Temperatura indisponível: abra o LibreHardwareMonitor com o servidor web ligado",
+    )
+    .await?;
     let sensors = cpu_sensors(&tree);
     if sensors.temperature_c.is_none() && sensors.power_w.is_none() {
         return Err(CollectError::unavailable(
@@ -34,51 +22,6 @@ pub(super) async fn read(addr: SocketAddr) -> Result<CpuSensors, CollectError> {
         ));
     }
     Ok(sensors)
-}
-
-/// GET HTTP/1.0 simples: é só `127.0.0.1`, sem TLS nem redirecionamento.
-async fn fetch(addr: SocketAddr) -> Result<Vec<u8>, CollectError> {
-    let mut stream = tokio::time::timeout(Duration::from_secs(1), TcpStream::connect(addr))
-        .await
-        .map_err(|_| not_running())?
-        .map_err(|_| not_running())?;
-    let request =
-        format!("GET /data.json HTTP/1.0\r\nHost: {addr}\r\nAccept: application/json\r\n\r\n");
-    stream
-        .write_all(request.as_bytes())
-        .await
-        .map_err(|_| not_running())?;
-    let mut raw = Vec::new();
-    stream
-        .take(MAX_RESPONSE)
-        .read_to_end(&mut raw)
-        .await
-        .map_err(|_| not_running())?;
-    split_response(&raw).map(<[u8]>::to_vec).ok_or_else(|| {
-        CollectError::new("lhm_invalid", "Resposta inválida do LibreHardwareMonitor")
-    })
-}
-
-fn not_running() -> CollectError {
-    CollectError::new(
-        "lhm_not_running",
-        "Temperatura indisponível: abra o LibreHardwareMonitor com o servidor web ligado",
-    )
-}
-
-/// Corpo de uma resposta `200`.
-fn split_response(raw: &[u8]) -> Option<&[u8]> {
-    let end = raw.windows(4).position(|w| w == b"\r\n\r\n")?;
-    let head = std::str::from_utf8(&raw[..end]).ok()?;
-    let status = head.split_whitespace().nth(1)?;
-    (status == "200").then_some(&raw[end + 4..])
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Kind {
-    Temperature,
-    Power,
-    Other,
 }
 
 /// Sensores da primeira CPU da árvore.
@@ -134,28 +77,19 @@ fn walk(node: &Value, in_cpu: bool, group: Kind, found: &mut Vec<(Kind, String, 
     let sensor_id = node.get("SensorId").and_then(Value::as_str);
 
     let in_cpu = in_cpu || image.contains("cpu");
-    let group = match text.to_ascii_lowercase().as_str() {
-        "temperatures" => Kind::Temperature,
-        "powers" => Kind::Power,
-        _ => group,
-    };
+    let group = Kind::from_group(text).unwrap_or(group);
 
     let children = node.get("Children").and_then(Value::as_array);
     if children.is_none_or(Vec::is_empty) {
         let (cpu_sensor, kind) = match sensor_id {
             // `/intelcpu/0/temperature/0`: hardware e tipo vêm no próprio id.
-            Some(id) => {
-                let parts: Vec<&str> = id.split('/').collect();
-                let kind = match parts.get(3).copied() {
-                    Some("temperature") => Kind::Temperature,
-                    Some("power") => Kind::Power,
-                    _ => Kind::Other,
-                };
-                (parts.get(1).is_some_and(|h| h.ends_with("cpu")), kind)
-            }
+            Some(id) => (
+                id.split('/').nth(1).is_some_and(|h| h.ends_with("cpu")),
+                Kind::from_sensor_id(id),
+            ),
             None => (in_cpu, group),
         };
-        if cpu_sensor && kind != Kind::Other {
+        if cpu_sensor && matches!(kind, Kind::Temperature | Kind::Power) {
             let value = node
                 .get("Value")
                 .and_then(Value::as_str)
@@ -171,29 +105,11 @@ fn walk(node: &Value, in_cpu: bool, group: Kind, found: &mut Vec<(Kind, String, 
     }
 }
 
-/// `"45,0 °C"`, `"12.3 W"` → número. Traço ou texto vazio (sensor sem leitura) → `None`.
-fn parse_value(text: &str) -> Option<f32> {
-    let number: String = text
-        .trim()
-        .chars()
-        .take_while(|c| c.is_ascii_digit() || matches!(c, ',' | '.' | '-'))
-        .map(|c| if c == ',' { '.' } else { c })
-        .collect();
-    number.parse().ok()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lhm::tests::{sensor, serve_once};
     use serde_json::json;
-
-    fn sensor(text: &str, value: &str, id: Option<&str>) -> Value {
-        let mut v = json!({"Text": text, "Value": value, "Children": []});
-        if let Some(id) = id {
-            v["SensorId"] = json!(id);
-        }
-        v
-    }
 
     /// Formato antigo: sem `SensorId`, o tipo vem do grupo e a CPU do ícone.
     fn tree_without_ids() -> Value {
@@ -253,48 +169,9 @@ mod tests {
         assert_eq!(cpu_sensors(&tree).temperature_c, Some(47.0));
     }
 
-    #[test]
-    fn valores() {
-        assert_eq!(parse_value("45,0 °C"), Some(45.0));
-        assert_eq!(parse_value("12.3 W"), Some(12.3));
-        assert_eq!(parse_value("-"), None);
-        assert_eq!(parse_value(""), None);
-    }
-
-    #[test]
-    fn resposta_http() {
-        assert_eq!(
-            split_response(b"HTTP/1.1 200 OK\r\nContent-Type: x\r\n\r\n{}"),
-            Some(&b"{}"[..])
-        );
-        assert_eq!(split_response(b"HTTP/1.1 404 Not Found\r\n\r\nx"), None);
-    }
-
-    #[tokio::test]
-    async fn servidor_desligado_vira_erro_claro() {
-        // Porta livre e fechada.
-        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-        let addr = listener.local_addr().unwrap();
-        drop(listener);
-        let error = read(addr).await.unwrap_err();
-        assert_eq!(error.code(), "lhm_not_running");
-    }
-
     #[tokio::test]
     async fn le_de_um_servidor_de_verdade() {
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let addr = listener.local_addr().unwrap();
-        let body = tree_without_ids().to_string();
-        tokio::spawn(async move {
-            let (mut socket, _) = listener.accept().await.unwrap();
-            let mut buf = [0u8; 1024];
-            let _ = socket.read(&mut buf).await.unwrap();
-            let response = format!(
-                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{body}",
-                body.len()
-            );
-            socket.write_all(response.as_bytes()).await.unwrap();
-        });
+        let addr = serve_once(tree_without_ids().to_string()).await;
         let s = read(addr).await.unwrap();
         assert_eq!(s.temperature_c, Some(61.3));
     }

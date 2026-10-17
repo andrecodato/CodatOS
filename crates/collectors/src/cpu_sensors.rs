@@ -22,7 +22,7 @@ impl Collector for CpuSensorsCollector {
     #[cfg(windows)]
     fn collect(&self) -> CollectFuture<'_> {
         Box::pin(async {
-            let sensors = lhm::read(lhm::DEFAULT_ADDR).await?;
+            let sensors = lhm::read(crate::lhm::DEFAULT_ADDR).await?;
             Ok(serde_json::to_value(sensors).expect("CpuSensors sempre serializa"))
         })
     }

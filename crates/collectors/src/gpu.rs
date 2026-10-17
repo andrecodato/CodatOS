@@ -1,21 +1,35 @@
-//! GPUs NVIDIA via NVML (RF-SYS-003).
+//! GPUs (RF-SYS-003): uso, memória, temperatura e potência.
 //!
-//! A biblioteca do driver (`nvml.dll`, `libnvidia-ml.so`) é carregada em tempo de execução:
-//! sem GPU NVIDIA, o tópico responde `unavailable` e o widget mostra "indisponível".
+//! NVIDIA vem da NVML, carregada em tempo de execução. Sem ela, AMD e Intel vêm do
+//! LibreHardwareMonitor no Windows (o mesmo da temperatura da CPU, Q-13) e do driver
+//! `amdgpu` no Linux. Sem nenhuma fonte, o tópico responde `unavailable`.
 
 use std::sync::{Arc, Mutex, PoisonError};
 
 use codatos_core::{CollectError, CollectFuture, Collector};
 use codatos_protocol::system::{Gpu, TOPIC_GPU};
 use nvml_wrapper::Nvml;
-use nvml_wrapper::enum_wrappers::device::TemperatureSensor;
 
-use crate::blocking;
+#[cfg(any(not(windows), test))]
+mod amdgpu;
+#[cfg(any(windows, test))]
+mod lhm;
+mod nvml;
 
-/// `system.gpu`. A NVML é iniciada na primeira coleta e reaproveitada.
+/// Estado da NVML entre coletas: tentada uma vez só, para não carregar a DLL a cada amostra
+/// num PC sem NVIDIA.
+#[derive(Debug, Default)]
+enum NvmlState {
+    #[default]
+    Untried,
+    Ready(Box<Nvml>),
+    Missing,
+}
+
+/// `system.gpu`.
 #[derive(Debug, Default)]
 pub struct GpuCollector {
-    nvml: Arc<Mutex<Option<Nvml>>>,
+    nvml: Arc<Mutex<NvmlState>>,
 }
 
 impl Collector for GpuCollector {
@@ -25,42 +39,47 @@ impl Collector for GpuCollector {
 
     fn collect(&self) -> CollectFuture<'_> {
         let nvml = Arc::clone(&self.nvml);
-        Box::pin(blocking::run(move || {
-            let mut guard = nvml.lock().unwrap_or_else(PoisonError::into_inner);
-            if guard.is_none() {
-                *guard = Some(
-                    Nvml::init()
-                        .map_err(|_| CollectError::unavailable("Nenhuma GPU NVIDIA encontrada"))?,
-                );
-            }
-            let nvml = guard.as_ref().expect("acabou de ser iniciada");
-            gpus(nvml)
-        }))
+        Box::pin(async move {
+            let nvidia = tokio::task::spawn_blocking(move || nvidia(&nvml))
+                .await
+                .map_err(|_| CollectError::new("collector_panicked", "O coletor falhou"))?;
+            let gpus = if nvidia.is_empty() {
+                others().await?
+            } else {
+                nvidia
+            };
+            serde_json::to_value(gpus)
+                .map_err(|_| CollectError::new("collector_invalid", "Amostra inválida"))
+        })
     }
 }
 
-fn gpus(nvml: &Nvml) -> Result<Vec<Gpu>, CollectError> {
-    let failed = |_| CollectError::new("nvml_failed", "Não consegui ler a GPU");
-    let count = nvml.device_count().map_err(failed)?;
-    let mut list = Vec::new();
-    for index in 0..count {
-        let device = nvml.device_by_index(index).map_err(failed)?;
-        let memory = device.memory_info().map_err(failed)?;
-        list.push(Gpu {
-            name: device.name().unwrap_or_else(|_| format!("GPU {index}")),
-            #[allow(clippy::cast_precision_loss)]
-            usage: device.utilization_rates().map_or(0.0, |u| u.gpu as f32),
-            memory_used: memory.used,
-            memory_total: memory.total,
-            #[allow(clippy::cast_precision_loss)]
-            temperature_c: device
-                .temperature(TemperatureSensor::Gpu)
-                .ok()
-                .map(|t| t as f32),
-            // NVML devolve miliwatts.
-            #[allow(clippy::cast_precision_loss)]
-            power_w: device.power_usage().ok().map(|mw| mw as f32 / 1000.0),
-        });
+fn nvidia(state: &Mutex<NvmlState>) -> Vec<Gpu> {
+    let mut state = state.lock().unwrap_or_else(PoisonError::into_inner);
+    if matches!(*state, NvmlState::Untried) {
+        *state = nvml::init().map_or(NvmlState::Missing, |n| NvmlState::Ready(Box::new(n)));
     }
-    Ok(list)
+    match &*state {
+        NvmlState::Ready(nvml) => nvml::gpus(nvml),
+        _ => Vec::new(),
+    }
+}
+
+/// GPUs que não são NVIDIA (ou NVIDIA sem NVML).
+#[cfg(windows)]
+async fn others() -> Result<Vec<Gpu>, CollectError> {
+    lhm::read(crate::lhm::DEFAULT_ADDR).await
+}
+
+#[cfg(not(windows))]
+async fn others() -> Result<Vec<Gpu>, CollectError> {
+    let gpus = tokio::task::spawn_blocking(amdgpu::gpus)
+        .await
+        .map_err(|_| CollectError::new("collector_panicked", "O coletor falhou"))?;
+    if gpus.is_empty() {
+        return Err(CollectError::unavailable(
+            "Nenhuma GPU NVIDIA ou AMD encontrada",
+        ));
+    }
+    Ok(gpus)
 }
