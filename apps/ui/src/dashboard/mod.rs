@@ -5,6 +5,7 @@
 
 mod catalog;
 mod grid;
+mod onboarding;
 mod state;
 mod widgets;
 
@@ -22,6 +23,7 @@ use wasm_bindgen::JsCast;
 
 use self::catalog::Kind;
 use self::grid::{COLUMNS, Cell};
+use self::onboarding::Onboarding;
 use self::state::{ErrorState, Retry, Skeleton};
 use crate::api::{self, CoreStatus};
 use crate::components::icon::{Icon, Svg};
@@ -68,6 +70,8 @@ enum Load {
     Waiting,
     Loading,
     Ready,
+    /// Primeira execução: o onboarding monta o dashboard padrão.
+    Onboarding,
     /// Núcleo sem banco: o layout funciona, mas não é gravado.
     NoStore,
     Failed(String),
@@ -320,19 +324,103 @@ fn item_from(widget: Widget) -> Item {
 }
 
 /// Dashboard inicial enquanto o onboarding não existe.
-fn default_dashboard() -> Saved {
-    let widget = |kind: &str, x, w| Widget {
-        id: new_id(),
-        kind: kind.to_owned(),
-        layout: json!({ "lg": Cell { x, y: 0, w, h: 2 } }),
-        config: json!({}),
-    };
+/// Widgets que entram sempre no dashboard padrão, já arrumados na grade.
+const DEFAULT_WIDGETS: &[(&str, Cell)] = &[
+    (
+        "system.usage",
+        Cell {
+            x: 0,
+            y: 0,
+            w: 4,
+            h: 2,
+        },
+    ),
+    (
+        "clock",
+        Cell {
+            x: 4,
+            y: 0,
+            w: 4,
+            h: 2,
+        },
+    ),
+    (
+        "projects",
+        Cell {
+            x: 8,
+            y: 0,
+            w: 4,
+            h: 4,
+        },
+    ),
+    (
+        "system.history",
+        Cell {
+            x: 0,
+            y: 2,
+            w: 8,
+            h: 3,
+        },
+    ),
+    (
+        "disks",
+        Cell {
+            x: 8,
+            y: 4,
+            w: 4,
+            h: 3,
+        },
+    ),
+    (
+        "network",
+        Cell {
+            x: 0,
+            y: 5,
+            w: 4,
+            h: 2,
+        },
+    ),
+];
+
+/// Posições do dashboard padrão (RF-DASH-001): os de sempre mais `extra`, os que têm fonte
+/// de dados neste PC (WSL, Docker, GPU, clima com cidade escolhida), nos lugares livres.
+fn default_layout(extra: &[&str]) -> Vec<(&'static str, Cell)> {
+    let mut out: Vec<(&'static str, Cell)> = DEFAULT_WIDGETS.to_vec();
+    for kind in extra {
+        let Some(k) = catalog::find(kind) else {
+            continue;
+        };
+        let cells: Vec<Cell> = out.iter().map(|(_, c)| *c).collect();
+        out.push((k.id, grid::free_spot(&cells, k.size.0, k.size.1)));
+    }
+    out
+}
+
+fn default_dashboard(extra: &[&str]) -> Saved {
+    let widgets = default_layout(extra)
+        .into_iter()
+        .map(|(kind, cell)| Widget {
+            id: new_id(),
+            kind: kind.to_owned(),
+            layout: json!({ "lg": cell }),
+            config: json!({}),
+        })
+        .collect();
     Saved {
         id: new_id(),
         name: "Dia a dia".to_owned(),
         position: 0,
-        widgets: vec![widget("system.usage", 0, 4), widget("clock", 4, 3)],
+        widgets,
     }
+}
+
+/// O que o núcleo tem para a tela inicial.
+enum Fetched {
+    Saved(Saved),
+    /// Nenhum dashboard ainda: primeira execução, vai para o onboarding.
+    Empty,
+    /// Núcleo sem banco local.
+    NoStore,
 }
 
 fn decode<T: DeserializeOwned>(value: Value) -> Result<T, RpcError> {
@@ -340,11 +428,11 @@ fn decode<T: DeserializeOwned>(value: Value) -> Result<T, RpcError> {
         .map_err(|e| RpcError::new(-32000, "bad_response", format!("Resposta inesperada: {e}")))
 }
 
-/// Primeiro dashboard salvo, ou o padrão (já gravado). `None`: núcleo sem banco.
-async fn fetch() -> Result<Option<Saved>, RpcError> {
+/// Primeiro dashboard salvo.
+async fn fetch() -> Result<Fetched, RpcError> {
     let list = match api::call(METHOD_DASHBOARDS_LIST, json!({})).await {
         Ok(v) => decode::<Vec<DashboardSummary>>(v)?,
-        Err(e) if e.code == METHOD_NOT_FOUND => return Ok(None),
+        Err(e) if e.code == METHOD_NOT_FOUND => return Ok(Fetched::NoStore),
         Err(e) => return Err(e),
     };
     if let Some(first) = list.first() {
@@ -355,16 +443,10 @@ async fn fetch() -> Result<Option<Saved>, RpcError> {
         if let Some(saved) =
             decode::<Option<Saved>>(api::call(METHOD_DASHBOARDS_GET, params).await?)?
         {
-            return Ok(Some(saved));
+            return Ok(Fetched::Saved(saved));
         }
     }
-    let saved = default_dashboard();
-    api::call(
-        METHOD_DASHBOARDS_SAVE,
-        serde_json::to_value(&saved).unwrap_or_default(),
-    )
-    .await?;
-    Ok(Some(saved))
+    Ok(Fetched::Empty)
 }
 
 #[component]
@@ -394,8 +476,9 @@ pub fn Dashboard(status: ReadSignal<CoreStatus>) -> impl IntoView {
         load.set(Load::Loading);
         spawn_local(async move {
             match fetch().await {
-                Ok(Some(saved)) => apply(saved, Load::Ready),
-                Ok(None) => apply(default_dashboard(), Load::NoStore),
+                Ok(Fetched::Saved(saved)) => apply(saved, Load::Ready),
+                Ok(Fetched::Empty) => load.set(Load::Onboarding),
+                Ok(Fetched::NoStore) => apply(default_dashboard(&[]), Load::NoStore),
                 Err(e) if e.code == -32000 && e.message == "Núcleo offline" => {
                     load.set(Load::Waiting);
                 }
@@ -454,20 +537,12 @@ pub fn Dashboard(status: ReadSignal<CoreStatus>) -> impl IntoView {
             })}
             {move || match load.get() {
                 Load::Waiting | Load::Loading => view! { <BoardSkeleton /> }.into_any(),
-                Load::Failed(message) => view! {
-                    <div class="rounded-lg border border-line bg-card p-5 shadow-card">
-                        <ErrorState title="O dashboard não carregou".to_owned() detail=message />
-                        <button
-                            type="button"
-                            on:click=move |_| load.set(Load::Waiting)
-                            class="mt-2 rounded-md border border-line px-2 py-1 text-xs hover:bg-card-hover"
-                        >
-                            "Tentar de novo"
-                        </button>
-                    </div>
-                }
-                .into_any(),
+                Load::Failed(message) => view! { <LoadFailed message=message load=load /> }.into_any(),
                 Load::Ready | Load::NoStore => view! { <Grid catalog_open=catalog_open /> }.into_any(),
+                Load::Onboarding => {
+                    let done = Callback::new(move |saved: Saved| apply(saved, Load::Ready));
+                    view! { <Onboarding on_done=done /> }.into_any()
+                }
             }}
             <Show when=move || catalog_open.get()>
                 <Catalog open=catalog_open />
@@ -497,6 +572,22 @@ fn undo_shortcuts(board: Board) {
         e.prevent_default();
     });
     on_cleanup(move || keys.remove());
+}
+
+#[component]
+fn LoadFailed(message: String, load: RwSignal<Load>) -> impl IntoView {
+    view! {
+        <div class="rounded-lg border border-line bg-card p-5 shadow-card">
+            <ErrorState title="O dashboard não carregou".to_owned() detail=message />
+            <button
+                type="button"
+                on:click=move |_| load.set(Load::Waiting)
+                class="mt-2 rounded-md border border-line px-2 py-1 text-xs hover:bg-card-hover"
+            >
+                "Tentar de novo"
+            </button>
+        </div>
+    }
 }
 
 #[component]
@@ -928,6 +1019,22 @@ mod tests {
         let id = uuid_v7(0x0189_abcd_ef01, [0xff; 10]);
         assert_eq!(id, "0189abcd-ef01-7fff-bfff-ffffffffffff");
         assert_eq!(id.len(), 36);
+    }
+
+    #[test]
+    fn padrao_sem_sobreposicao_e_com_extras() {
+        assert!(
+            DEFAULT_WIDGETS
+                .iter()
+                .all(|(k, _)| catalog::find(k).is_some())
+        );
+        let layout = default_layout(&["wsl", "nao.existe"]);
+        assert_eq!(layout.len(), DEFAULT_WIDGETS.len() + 1);
+        assert_eq!(layout.last().map(|(k, _)| *k), Some("wsl"));
+        let cells: Vec<Cell> = layout.iter().map(|(_, c)| *c).collect();
+        let mut compacted = cells.clone();
+        grid::compact(&mut compacted, None);
+        assert_eq!(cells, compacted, "já nasce compactado e sem sobreposição");
     }
 
     #[test]

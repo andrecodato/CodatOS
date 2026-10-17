@@ -137,10 +137,32 @@ fn Attribution() -> impl IntoView {
     }
 }
 
-/// Busca de cidade pelo nome; escolher grava a preferência e recarrega o widget.
+/// Troca de cidade dentro do widget: grava e recarrega.
 #[component]
 fn CityPicker(picking: RwSignal<bool>) -> impl IntoView {
     let retry = use_context::<Retry>();
+    let saved = Callback::new(move |_: WeatherLocation| {
+        picking.set(false);
+        // Remonta o widget: a assinatura nova já coleta com a cidade escolhida.
+        if let Some(r) = retry {
+            r.again();
+        }
+    });
+    view! {
+        <div class="flex h-full flex-col gap-2">
+            <CitySearch on_saved=saved />
+            <Show when=move || picking.get()>
+                <button type="button" class="self-start text-xs text-muted hover:text-fg" on:click=move |_| picking.set(false)>
+                    "Cancelar"
+                </button>
+            </Show>
+        </div>
+    }
+}
+
+/// Busca de cidade pelo nome; escolher grava a preferência global (também no onboarding).
+#[component]
+pub fn CitySearch(on_saved: Callback<WeatherLocation>) -> impl IntoView {
     let query = RwSignal::new(String::new());
     let results = RwSignal::new(None::<Result<Vec<WeatherLocation>, String>>);
     let busy = RwSignal::new(false);
@@ -165,25 +187,19 @@ fn CityPicker(picking: RwSignal<bool>) -> impl IntoView {
         spawn_local(async move {
             let params = serde_json::to_value(SetSetting {
                 key: SETTING_WEATHER.to_owned(),
-                value: serde_json::to_value(&location).unwrap_or_default(),
+                value: serde_json::to_value(location.clone()).unwrap_or_default(),
                 scope: SettingScope::Global,
             })
             .unwrap_or_default();
             match api::call(METHOD_SETTINGS_SET, params).await {
-                Ok(_) => {
-                    picking.set(false);
-                    // Remonta o widget: a assinatura nova já coleta com a cidade escolhida.
-                    if let Some(r) = retry {
-                        r.again();
-                    }
-                }
+                Ok(_) => on_saved.run(location),
                 Err(e) => results.set(Some(Err(e.message))),
             }
         });
     };
 
     view! {
-        <div class="flex h-full flex-col gap-2 text-sm">
+        <div class="flex min-h-0 flex-1 flex-col gap-2 text-sm">
             <form
                 class="flex gap-2"
                 on:submit=move |e: ev::SubmitEvent| {
@@ -238,11 +254,6 @@ fn CityPicker(picking: RwSignal<bool>) -> impl IntoView {
                         .into_any(),
                 }}
             </ul>
-            <Show when=move || picking.get()>
-                <button type="button" class="self-start text-xs text-muted hover:text-fg" on:click=move |_| picking.set(false)>
-                    "Cancelar"
-                </button>
-            </Show>
         </div>
     }
 }
