@@ -11,7 +11,6 @@ use crate::components::icon::{Icon, Svg};
 /// Viram um aviso discreto em vez do alerta vermelho.
 const SOFT: &[&str] = &[
     "unavailable",
-    "lhm_not_running",
     "unknown_topic",
     "docker_not_running",
     "no_projects",
@@ -37,7 +36,7 @@ where
     let status = use_context::<ReadSignal<CoreStatus>>();
     (move || match sample.get() {
         None => view! { <Skeleton /> }.into_any(),
-        // Fonte que não existe nesta máquina (sem GPU, sem sensor, LHM fechado): não é falha.
+        // Fonte que não existe nesta máquina (sem GPU NVIDIA, sem sensor): não é falha.
         Some(Err(problem)) if SOFT.contains(&problem.code.as_str()) => view! {
             <Unavailable code=problem.code title=problem.title />
         }
@@ -119,7 +118,6 @@ fn Unavailable(code: String, title: String) -> impl IntoView {
             "Este widget depende de um recurso de outro sistema operacional.".to_owned(),
         ),
         "unavailable" => ("Indisponível neste PC", title),
-        "lhm_not_running" => ("Precisa do LibreHardwareMonitor", title),
         _ => ("Nada por aqui", title),
     };
     view! {

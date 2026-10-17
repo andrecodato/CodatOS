@@ -1,35 +1,53 @@
 //! GPUs (RF-SYS-003): uso, memória, temperatura e potência.
 //!
-//! NVIDIA vem da NVML, carregada em tempo de execução. Sem ela, AMD e Intel vêm do
-//! LibreHardwareMonitor no Windows (o mesmo da temperatura da CPU, Q-13) e do driver
-//! `amdgpu` no Linux. Sem nenhuma fonte, o tópico responde `unavailable`.
+//! Tudo pelas bibliotecas que os próprios drivers instalam, sem programa externo: NVIDIA pela
+//! NVML; AMD pela ADL no Windows e pelo driver `amdgpu` no Linux. Sem nenhuma, o tópico
+//! responde `unavailable`.
 
 use std::sync::{Arc, Mutex, PoisonError};
 
 use codatos_core::{CollectError, CollectFuture, Collector};
 use codatos_protocol::system::{Gpu, TOPIC_GPU};
-use nvml_wrapper::Nvml;
 
+#[cfg(any(windows, test))]
+mod adl;
 #[cfg(any(not(windows), test))]
 mod amdgpu;
-#[cfg(any(windows, test))]
-mod lhm;
 mod nvml;
 
-/// Estado da NVML entre coletas: tentada uma vez só, para não carregar a DLL a cada amostra
-/// num PC sem NVIDIA.
+/// Biblioteca de um driver entre coletas: tentada uma vez só, para não carregar a DLL a cada
+/// amostra num PC sem aquela placa.
 #[derive(Debug, Default)]
-enum NvmlState {
+enum Lib<T> {
     #[default]
     Untried,
-    Ready(Box<Nvml>),
+    Ready(Box<T>),
     Missing,
+}
+
+impl<T> Lib<T> {
+    fn get_or_load(&mut self, load: impl FnOnce() -> Option<T>) -> Option<&T> {
+        if matches!(self, Self::Untried) {
+            *self = load().map_or(Self::Missing, |t| Self::Ready(Box::new(t)));
+        }
+        match self {
+            Self::Ready(t) => Some(t),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+struct Libs {
+    nvml: Lib<nvml_wrapper::Nvml>,
+    #[cfg(windows)]
+    adl: Lib<adl::Adl>,
 }
 
 /// `system.gpu`.
 #[derive(Debug, Default)]
 pub struct GpuCollector {
-    nvml: Arc<Mutex<NvmlState>>,
+    libs: Arc<Mutex<Libs>>,
 }
 
 impl Collector for GpuCollector {
@@ -38,48 +56,40 @@ impl Collector for GpuCollector {
     }
 
     fn collect(&self) -> CollectFuture<'_> {
-        let nvml = Arc::clone(&self.nvml);
+        let libs = Arc::clone(&self.libs);
         Box::pin(async move {
-            let nvidia = tokio::task::spawn_blocking(move || nvidia(&nvml))
-                .await
-                .map_err(|_| CollectError::new("collector_panicked", "O coletor falhou"))?;
-            let gpus = if nvidia.is_empty() {
-                others().await?
-            } else {
-                nvidia
-            };
+            let gpus = tokio::task::spawn_blocking(move || {
+                let mut libs = libs.lock().unwrap_or_else(PoisonError::into_inner);
+                gpus(&mut libs)
+            })
+            .await
+            .map_err(|_| CollectError::new("collector_panicked", "O coletor falhou"))?;
+            if gpus.is_empty() {
+                return Err(CollectError::unavailable(
+                    "Nenhuma GPU NVIDIA ou AMD encontrada",
+                ));
+            }
             serde_json::to_value(gpus)
                 .map_err(|_| CollectError::new("collector_invalid", "Amostra inválida"))
         })
     }
 }
 
-fn nvidia(state: &Mutex<NvmlState>) -> Vec<Gpu> {
-    let mut state = state.lock().unwrap_or_else(PoisonError::into_inner);
-    if matches!(*state, NvmlState::Untried) {
-        *state = nvml::init().map_or(NvmlState::Missing, |n| NvmlState::Ready(Box::new(n)));
-    }
-    match &*state {
-        NvmlState::Ready(nvml) => nvml::gpus(nvml),
-        _ => Vec::new(),
-    }
-}
-
-/// GPUs que não são NVIDIA (ou NVIDIA sem NVML).
-#[cfg(windows)]
-async fn others() -> Result<Vec<Gpu>, CollectError> {
-    lhm::read(crate::lhm::DEFAULT_ADDR).await
-}
-
-#[cfg(not(windows))]
-async fn others() -> Result<Vec<Gpu>, CollectError> {
-    let gpus = tokio::task::spawn_blocking(amdgpu::gpus)
-        .await
-        .map_err(|_| CollectError::new("collector_panicked", "O coletor falhou"))?;
-    if gpus.is_empty() {
-        return Err(CollectError::unavailable(
-            "Nenhuma GPU NVIDIA ou AMD encontrada",
-        ));
-    }
-    Ok(gpus)
+/// NVIDIA e AMD juntas (um PC pode ter as duas).
+fn gpus(libs: &mut Libs) -> Vec<Gpu> {
+    let mut list = libs
+        .nvml
+        .get_or_load(nvml::init)
+        .map(nvml::gpus)
+        .unwrap_or_default();
+    #[cfg(windows)]
+    list.extend(
+        libs.adl
+            .get_or_load(adl::Adl::load)
+            .map(adl::Adl::gpus)
+            .unwrap_or_default(),
+    );
+    #[cfg(not(windows))]
+    list.extend(amdgpu::gpus());
+    list
 }

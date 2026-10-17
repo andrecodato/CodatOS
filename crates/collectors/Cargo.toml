@@ -21,6 +21,7 @@ sysinfo.workspace = true
 tokio = { workspace = true, features = ["io-util", "process"] }
 
 [target.'cfg(windows)'.dependencies]
+libloading.workspace = true
 winreg.workspace = true
 
 [lints]

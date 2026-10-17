@@ -9,8 +9,6 @@ mod disks;
 mod docker;
 mod gpu;
 mod http;
-#[cfg(any(windows, test))]
-mod lhm;
 mod projects;
 mod system;
 mod weather;

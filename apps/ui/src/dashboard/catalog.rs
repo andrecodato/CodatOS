@@ -74,7 +74,7 @@ pub const KINDS: &[Kind] = &[
     Kind {
         id: "system.gpu",
         name: "GPU",
-        description: "Uso, memória e temperatura da GPU (NVIDIA, AMD ou Intel).",
+        description: "Uso, memória e temperatura da GPU NVIDIA ou AMD.",
         icon: Icon::Monitor,
         size: (4, 2),
         min: (3, 2),

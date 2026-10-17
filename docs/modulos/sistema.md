@@ -65,7 +65,8 @@ Mostrar — e permitir controlar — o que está acontecendo no computador: hard
 | CPU, RAM, rede, discos, processos | `sysinfo` | `sysinfo` | `sysinfo` |
 | Temperatura CPU | ⚠️ ver abaixo | hwmon (`sysinfo`) | SMC (`sysinfo`, parcial) |
 | GPU NVIDIA | NVML | NVML | — |
-| GPU AMD/Intel | LibreHardwareMonitor (servidor web), quando está rodando | sysfs `amdgpu` (`i915` depois) | IOKit (Apple Silicon, parcial) |
+| GPU AMD | ADL (`atiadlxx.dll` do driver da AMD, sem admin) | sysfs `amdgpu` | — |
+| GPU Intel | ⚠️ depois do M2 | sysfs `i915` (depois) | IOKit (Apple Silicon, parcial) |
 | Potência CPU | ⚠️ ver abaixo | RAPL (`/sys/class/powercap`) | ⚠️ `powermetrics` exige root |
 | Bateria | API do SO (`battery`/`starship-battery`) | idem | idem |
 | WSL | `wsl.exe` + Registro | — | — |
@@ -78,7 +79,7 @@ O Windows não expõe temperatura de CPU nem potência de forma confiável sem d
 1. **Sem privilégio (padrão)** — mostrar o que existe: GPU via NVML, zonas térmicas ACPI quando disponíveis; os demais campos aparecem como "indisponível — ativar sensores avançados".
 2. **Sensores avançados (opt-in)** — integrar com o **LibreHardwareMonitor** (que usa o driver PawnIO em vez do antigo WinRing0, hoje bloqueado pelo Defender), lendo do servidor web/WMI dele, ou instalar um *helper* privilegiado mínimo do CodatOS.
 
-**Decidido em 2026-10-15 ([Q-13](../10-perguntas-em-aberto.md#sistema)):** opção 1 por padrão + leitura do LibreHardwareMonitor quando ele estiver rodando (servidor web local, `http://127.0.0.1:8085/data.json`). Sem o LHM, o widget mostra "temperatura indisponível" com um link de como ativar. Desde 2026-10-17 o LHM também é a fonte das GPUs AMD e Intel no Windows (uso, VRAM, temperatura e potência); sem ele, o widget de GPU pede para abri-lo. Nenhum driver ou serviço privilegiado próprio na 1.0. Pesquisa no vault: `vault/05 Pesquisa/Temperatura no Windows.md`.
+**Decidido em 2026-10-15 ([Q-13](../10-perguntas-em-aberto.md#sistema)):** opção 1 por padrão + leitura do LibreHardwareMonitor quando ele estiver rodando (servidor web local, `http://127.0.0.1:8085/data.json`). Sem o LHM, o widget mostra "temperatura indisponível" com um link de como ativar. **Revisto em 2026-10-17**: o autor não quer depender de programa externo. A GPU AMD passa a ser lida pela ADL do driver (sem admin) e a temperatura da CPU pelo driver PawnIO instalado pelo próprio CodatOS (uma vez, com admin). Nenhum driver ou serviço privilegiado próprio na 1.0. Pesquisa no vault: `vault/05 Pesquisa/Temperatura no Windows.md`.
 
 ### Detalhes de implementação do WSL
 
@@ -98,7 +99,7 @@ O Windows não expõe temperatura de CPU nem potência de forma confiável sem d
 
 - **Dado** duas distros (Ubuntu em execução, Debian parada), **quando** o widget WSL atualiza por 10 minutos, **então** o Debian continua parado e mostra apenas o tamanho do VHDX.
 - **Dado** o Docker Desktop com integração WSL ligada no Ubuntu, **quando** os containers são listados, **então** cada container aparece uma única vez.
-- **Dado** um PC sem GPU NVIDIA nem LibreHardwareMonitor aberto, **quando** o widget Uso do PC é exibido, **então** o anel de GPU mostra "indisponível" (ou é ocultado, conforme configuração) sem erro.
+- **Dado** um PC sem GPU NVIDIA nem AMD, **quando** o widget Uso do PC é exibido, **então** o anel de GPU mostra "indisponível" (ou é ocultado, conforme configuração) sem erro.
 
 ## Perguntas em aberto
 
