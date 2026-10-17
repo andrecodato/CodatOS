@@ -64,8 +64,8 @@ Regras das assinaturas:
 |---|---|
 | Sessão | `session.hello` (versão, capacidades), `system.ping`, `vault.status`, `vault.unlock`, `vault.lock` |
 | Dashboard | `dashboards.list/get/save`, `widgets.catalog` |
-| Assinaturas | `subscribe(topic)`, `unsubscribe(sub)` — tópicos: `system.metrics`, `disks`, `wsl.distros`, `docker.containers`, `projects`, `weather`, `calendar.week`, `tasks.summary`, `finance.summary`, `notifications` |
-| Sistema | `system.info`, `processes.list`, `processes.kill` |
+| Assinaturas | `subscribe(topic)`, `unsubscribe(sub)` — tópicos: `system.metrics`, `system.info`, `disks`, `wsl.distros`, `docker.containers`, `projects`, `weather`, `calendar.week`, `tasks.summary`, `finance.summary`, `notifications` |
+| Sistema | `processes.list`, `processes.kill` |
 | WSL | `wsl.list`, `wsl.start`, `wsl.terminate`, `wsl.shutdown`, `wsl.setDefault` |
 | Docker | `docker.engines`, `docker.containers.list`, `docker.container.start/stop/restart`, `docker.logs.follow` |
 | Projetos | `projects.list`, `projects.open`, `projects.roots.save` |

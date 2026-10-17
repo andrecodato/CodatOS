@@ -76,15 +76,17 @@ O núcleo anuncia sua versão e suas **capacidades** (ex.: `wsl`, `docker`, `nvm
 Cada fonte de dados do sistema é um coletor independente:
 
 ```rust
-#[async_trait]
-pub trait Collector: Send + Sync {
-    /// "system.cpu", "disks", "wsl.distros", "docker.containers"…
-    fn id(&self) -> &'static str;
-    fn platforms(&self) -> &'static [Platform];
-    fn default_interval(&self) -> Duration;
-    async fn collect(&self, ctx: &CollectCtx) -> Result<Snapshot, CollectError>;
+// crates/core/src/collector.rs; implementações em crates/collectors
+pub trait Collector: Debug + Send + Sync + 'static {
+    /// "system.metrics", "disks", "wsl.distros", "docker.containers"…
+    fn topic(&self) -> &'static str;
+    fn intervals(&self) -> Intervals { /* padrão 2 s, mínimo 500 ms */ }
+    fn timeout(&self) -> Duration { Duration::from_secs(5) }
+    fn collect(&self) -> CollectFuture<'_>; // Result<serde_json::Value, CollectError>
 }
 ```
+
+Coletores que só existem numa plataforma (WSL no Windows) simplesmente não entram na lista daquela plataforma.
 
 - **Sob demanda**: o agendador conta assinaturas por tópico; sem ninguém assistindo e sem alertas configurados, o coletor não roda (RNF-DES-03).
 - **Isolamento**: cada coleta tem *timeout*, *backoff* exponencial e erro próprio; um coletor travado não afeta os outros (RNF-CON-02).

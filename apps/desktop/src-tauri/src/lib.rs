@@ -82,7 +82,7 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
             port: DEFAULT_PORT,
             ui_dir: None,
             extra_origins: dev_origins(),
-            collectors: Vec::new(),
+            collectors: codatos_collectors::all(),
         };
         match codatos_core::start(config).await {
             Ok(server) => {
