@@ -1,0 +1,109 @@
+---
+// Landing "em breve" (S1, docs/09-roadmap.md): hero com o mosaico, CTA de download que
+// ainda avisa "em breve" e link para o GitHub. Sem lista de espera por enquanto.
+import Preview from "../components/Preview.astro";
+import Sprite from "../components/Sprite.astro";
+import "../styles/site.css";
+
+const repo = "https://github.com/andrecodato/CodatOS";
+const description =
+  "Finanças, tarefas, agenda, servidores e a saúde do seu PC num painel bonito, rápido e privado. Open source.";
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#060A14" />
+    <meta name="description" content={description} />
+    <meta property="og:title" content="CodatOS" />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>CodatOS: seu universo, em um só lugar</title>
+  </head>
+  <body>
+    <Sprite />
+
+    <header class="nav">
+      <a class="brand" href="/" aria-label="CodatOS, início">
+        <svg aria-hidden="true"><use href="#logo" /></svg>
+        CodatOS
+      </a>
+      <nav class="nav-links" aria-label="Principal">
+        <a href="#" data-soon>Recursos</a>
+        <a href="#" data-soon>Segurança</a>
+        <a href="#" data-soon>Preços</a>
+        <a href="#" data-soon>Docs</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="gh-link" href={repo} target="_blank" rel="noopener" aria-label="CodatOS no GitHub">
+          <svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+          <span>GitHub</span>
+        </a>
+        <a class="btn-sm" href="#" data-soon>
+          <svg class="icon" aria-hidden="true"><use href="#i-download" /></svg>
+          <span>Baixar</span>
+        </a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" id="hero" aria-labelledby="hero-title">
+        <canvas id="mosaic" aria-hidden="true"></canvas>
+        <div class="veil" aria-hidden="true"></div>
+
+        <div class="hero-inner">
+          <a class="pill" href={repo} target="_blank" rel="noopener">
+            <span class="tag">Em breve</span>
+            <span class="long">Acompanhe o desenvolvimento no GitHub</span>
+            <span class="short">Acompanhe no GitHub</span>
+            <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+          </a>
+
+          <h1 id="hero-title">
+            <span class="top">Seu universo,</span><br />
+            <span class="grad">em um só lugar.</span>
+          </h1>
+
+          <p class="lead">{description}</p>
+
+          <div class="ctas">
+            <a class="btn btn-primary" id="cta-download" href="#" data-soon>
+              <svg class="icon" aria-hidden="true"><use href="#i-download" /></svg>
+              <span id="cta-label">Baixar o CodatOS</span>
+            </a>
+            <a class="btn btn-secondary" href={repo} target="_blank" rel="noopener">
+              <svg class="icon" aria-hidden="true"><use href="#i-github" /></svg>
+              Ver no GitHub
+            </a>
+          </div>
+          <p class="also" id="cta-also">Disponível para Windows, macOS e Linux</p>
+
+          <ul class="badges" aria-label="Destaques">
+            <li><svg class="icon" aria-hidden="true"><use href="#i-code" /></svg>Gratuito e open source</li>
+            <li><svg class="icon" aria-hidden="true"><use href="#i-monitor" /></svg>Windows · macOS · Linux</li>
+            <li><svg class="icon" aria-hidden="true"><use href="#i-lock" /></svg>Criptografia ponta a ponta</li>
+          </ul>
+
+          <p class="hint" id="hint" aria-hidden="true">✦ Clique em qualquer lugar do fundo</p>
+
+          <Preview />
+        </div>
+      </section>
+    </main>
+
+    <footer class="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-2 px-4 py-8 text-[13px] text-(--text-subtle)">
+      <span>© {new Date().getFullYear()} CodatOS · Licença MIT</span>
+      <a class="hover:text-(--text)" href={repo} target="_blank" rel="noopener">Código no GitHub</a>
+    </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      import "../scripts/page";
+    </script>
+  </body>
+</html>
