@@ -28,8 +28,8 @@ struct VmProcess {
 }
 
 /// Distro como está no Registro.
-struct Registered {
-    name: String,
+pub(crate) struct Registered {
+    pub(crate) name: String,
     version: u8,
     default: bool,
     vhdx: Option<PathBuf>,
@@ -106,7 +106,7 @@ impl Collector for WslCollector {
     }
 }
 
-fn registered() -> Result<Vec<Registered>, CollectError> {
+pub(crate) fn registered() -> Result<Vec<Registered>, CollectError> {
     let not_installed = || CollectError::unavailable("O WSL não está instalado");
     let lxss = RegKey::predef(HKEY_CURRENT_USER)
         .open_subkey(LXSS)

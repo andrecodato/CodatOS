@@ -35,6 +35,11 @@ pub enum Icon {
     Monitor,
     Container,
     Terminal,
+    Play,
+    Power,
+    Star,
+    Code,
+    Folder,
     Sun,
     Moon,
     Cloud,
@@ -49,6 +54,7 @@ pub enum Icon {
 
 impl Icon {
     /// Conteúdo do `<svg>` (viewBox 0 0 24 24).
+    #[allow(clippy::too_many_lines)] // tabela de dados, um ícone por braço
     fn body(self) -> &'static str {
         match self {
             Self::Dashboard => {
@@ -142,6 +148,15 @@ impl Icon {
             }
             Self::MapPin => {
                 r#"<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>"#
+            }
+            Self::Play => r#"<polygon points="6 3 20 12 6 21 6 3"/>"#,
+            Self::Power => r#"<path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/>"#,
+            Self::Star => {
+                r#"<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>"#
+            }
+            Self::Code => r#"<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>"#,
+            Self::Folder => {
+                r#"<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>"#
             }
             Self::Terminal => r#"<path d="M12 19h8"/><path d="m4 17 6-6-6-6"/>"#,
             Self::Monitor => {
