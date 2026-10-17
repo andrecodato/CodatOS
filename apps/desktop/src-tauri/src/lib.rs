@@ -42,6 +42,8 @@ pub fn run() {
         }))
         .plugin(autostart::plugin())
         .plugin(window::state_plugin())
+        // Links dos widgets abrem no navegador padrão (só http/https, ver capabilities).
+        .plugin(tauri_plugin_opener::init())
         .manage(CoreToken::default())
         .invoke_handler(tauri::generate_handler![get_session_token])
         .setup(move |app| {

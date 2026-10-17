@@ -47,6 +47,7 @@ sysinfo = { version = "0.39.6", default-features = false, features = ["system", 
 tauri = { version = "2.12.4", features = ["tray-icon"] }
 tauri-build = "2.7.3"
 tauri-plugin-autostart = "2.7.0"
+tauri-plugin-opener = "2.7.2"
 tauri-plugin-single-instance = "2.5.4"
 tauri-plugin-window-state = "2.5.0"
 thiserror = "2.0.21"
