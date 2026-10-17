@@ -124,6 +124,19 @@ pub enum SensorSource {
 /// Distros WSL (RF-SYS-020 a 022). Só existe no Windows.
 pub const TOPIC_WSL: &str = "wsl.distros";
 
+/// Ações do WSL (Q-14: ligar e desligar no M1). Só existem no Windows.
+pub const METHOD_WSL_START: &str = "wsl.start";
+pub const METHOD_WSL_TERMINATE: &str = "wsl.terminate";
+/// Desliga a VM inteira (`wsl --shutdown`), com todas as distros.
+pub const METHOD_WSL_SHUTDOWN: &str = "wsl.shutdown";
+pub const METHOD_WSL_SET_DEFAULT: &str = "wsl.setDefault";
+
+/// Parâmetros de `wsl.start`, `wsl.terminate` e `wsl.setDefault`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WslDistroName {
+    pub distro: String,
+}
+
 /// Amostra de `wsl.distros`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

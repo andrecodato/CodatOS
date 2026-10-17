@@ -5,6 +5,29 @@ use serde::{Deserialize, Serialize};
 /// Repositórios das pastas raiz e recentes dos editores, com o estado do git.
 pub const TOPIC_PROJECTS: &str = "projects";
 
+/// Abre um projeto no editor, no terminal ou no explorador de arquivos (RF-PROJ-004).
+pub const METHOD_PROJECTS_OPEN: &str = "projects.open";
+
+/// Parâmetros de `projects.open`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenProject {
+    pub path: String,
+    #[serde(default)]
+    pub wsl_distro: Option<String>,
+    pub target: OpenTarget,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OpenTarget {
+    /// VS Code (Q-15); dentro do WSL, pelo Remote - WSL.
+    Editor,
+    /// Windows Terminal na pasta do projeto.
+    Terminal,
+    Explorer,
+}
+
 /// Chave em `settings` (escopo `device`: caminhos são por dispositivo) com [`ProjectsConfig`].
 pub const SETTING_PROJECTS: &str = "projects";
 

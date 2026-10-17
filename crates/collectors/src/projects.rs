@@ -7,6 +7,7 @@
 mod editors;
 mod git;
 mod language;
+mod open;
 mod scan;
 #[cfg(any(windows, test))]
 mod wsl;
@@ -23,6 +24,8 @@ use codatos_protocol::dashboard::SettingScope;
 use crate::SettingsReader;
 use codatos_protocol::projects::{Project, ProjectsConfig, SETTING_PROJECTS, TOPIC_PROJECTS};
 use futures_util::StreamExt as _;
+
+pub(crate) use open::Open;
 
 /// De quanto em quanto tempo as pastas raiz são varridas de novo.
 const RESCAN: Duration = Duration::from_secs(300);

@@ -1,20 +1,28 @@
 //! Projetos recentes (RF-PROJ-003): nome, branch, alterações e último acesso (`projects`).
 
-use codatos_protocol::projects::{Project, TOPIC_PROJECTS};
+use codatos_protocol::projects::{
+    METHOD_PROJECTS_OPEN, OpenProject, OpenTarget, Project, TOPIC_PROJECTS,
+};
 use leptos::prelude::*;
 use serde_json::Value;
 
+use super::parts::ActionButton;
 use crate::api;
+use crate::components::icon::Icon;
 use crate::dashboard::state::sample_view;
 
 pub fn render(_config: &Value) -> AnyView {
     let sample = api::subscribe(TOPIC_PROJECTS, None);
-    sample_view(sample, |projects: Vec<Project>| {
+    let error = RwSignal::new(None::<String>);
+    sample_view(sample, move |projects: Vec<Project>| {
         let today = today_start();
         view! {
-            <ul class="h-full space-y-1 overflow-auto pr-1">
-                {projects.into_iter().map(|p| view! { <Row project=p today=today /> }).collect_view()}
-            </ul>
+            <div class="flex h-full flex-col gap-1">
+                <ul class="min-h-0 flex-1 space-y-1 overflow-auto pr-1">
+                    {projects.into_iter().map(|p| view! { <Row project=p today=today error=error /> }).collect_view()}
+                </ul>
+                {move || error.get().map(|e| view! { <p role="alert" class="truncate text-xs text-danger" title=e.clone()>{e.clone()}</p> })}
+            </div>
         }
     })
 }
@@ -47,7 +55,31 @@ fn relative_day(timestamp: i64, today_start: i64) -> String {
 }
 
 #[component]
-fn Row(project: Project, today: i64) -> impl IntoView {
+fn Row(project: Project, today: i64, error: RwSignal<Option<String>>) -> impl IntoView {
+    let open = |target: OpenTarget| {
+        serde_json::to_value(OpenProject {
+            path: project.path.clone(),
+            wsl_distro: project.wsl_distro.clone(),
+            target,
+        })
+        .unwrap_or_default()
+    };
+    let actions = [
+        (Icon::Code, "Abrir no VS Code", OpenTarget::Editor),
+        (Icon::Terminal, "Abrir no terminal", OpenTarget::Terminal),
+        (Icon::Folder, "Abrir a pasta", OpenTarget::Explorer),
+    ]
+    .map(|(icon, label, target)| {
+        view! {
+            <ActionButton
+                icon=icon
+                label=format!("{label}: {}", project.name)
+                method=METHOD_PROJECTS_OPEN
+                params=open(target)
+                error=error
+            />
+        }
+    });
     let last = project
         .last_opened_at
         .into_iter()
@@ -73,7 +105,7 @@ fn Row(project: Project, today: i64) -> impl IntoView {
         None => project.path.clone(),
     };
     view! {
-        <li class="flex items-center gap-2 rounded-md px-1 py-1 text-sm hover:bg-card-hover" title=title>
+        <li class="group flex items-center gap-2 rounded-md px-1 py-1 text-sm hover:bg-card-hover" title=title>
             <div class="min-w-0 flex-1">
                 <p class="flex items-center gap-1.5">
                     <span class="truncate font-medium">{project.name.clone()}</span>
@@ -94,7 +126,10 @@ fn Row(project: Project, today: i64) -> impl IntoView {
                         .join(" · ")}
                 </p>
             </div>
-            <span class="shrink-0 text-xs text-subtle">{last.map(|t| relative_day(t, today))}</span>
+            <span class="shrink-0 text-xs text-subtle group-hover:hidden group-focus-within:hidden">
+                {last.map(|t| relative_day(t, today))}
+            </span>
+            <span class="hidden shrink-0 group-hover:flex group-focus-within:flex">{actions}</span>
         </li>
     }
 }

@@ -9,10 +9,14 @@
 //! distro (`df`) só rodam nas que acabaram de aparecer como ligadas.
 
 #[cfg(windows)]
+mod actions;
+#[cfg(windows)]
 mod collector;
 #[cfg(any(windows, test))]
 mod parse;
 
+#[cfg(windows)]
+pub(crate) use actions::methods;
 #[cfg(windows)]
 pub use collector::WslCollector;
 #[cfg(windows)]
