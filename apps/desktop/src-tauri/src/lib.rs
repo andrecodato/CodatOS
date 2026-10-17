@@ -86,17 +86,11 @@ async fn open_store(app: &AppHandle) -> Option<codatos_store::Store> {
     }
 }
 
-/// Preferências `device` do banco, para os coletores (configuração dos projetos).
-fn device_settings(store: codatos_store::Store) -> codatos_collectors::DeviceSettings {
-    std::sync::Arc::new(move |key| {
+/// Leitura de preferências do banco, para os coletores (projetos, cidade do clima).
+fn settings_reader(store: codatos_store::Store) -> codatos_collectors::SettingsReader {
+    std::sync::Arc::new(move |key, scope| {
         let store = store.clone();
-        Box::pin(async move {
-            store
-                .setting(key, codatos_protocol::dashboard::SettingScope::Device)
-                .await
-                .ok()
-                .flatten()
-        })
+        Box::pin(async move { store.setting(key, scope).await.ok().flatten() })
     })
 }
 
@@ -112,8 +106,11 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
             methods: store
                 .as_ref()
                 .map(codatos_store::methods)
-                .unwrap_or_default(),
-            collectors: codatos_collectors::all(store.map(device_settings)),
+                .unwrap_or_default()
+                .into_iter()
+                .chain(codatos_collectors::methods())
+                .collect(),
+            collectors: codatos_collectors::all(store.map(settings_reader)),
         };
         match codatos_core::start(config).await {
             Ok(server) => {
