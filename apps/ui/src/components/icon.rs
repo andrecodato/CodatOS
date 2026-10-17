@@ -33,6 +33,8 @@ pub enum Icon {
     HardDrive,
     ArrowDownUp,
     Monitor,
+    Container,
+    Terminal,
 }
 
 impl Icon {
@@ -102,6 +104,10 @@ impl Icon {
             Self::ArrowDownUp => {
                 r#"<path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/>"#
             }
+            Self::Container => {
+                r#"<path d="M22 7.7c0-.6-.4-1.2-.8-1.5l-6.3-3.9a1.72 1.72 0 0 0-1.7 0l-10.3 6c-.5.2-.9.8-.9 1.4v6.6c0 .5.4 1.2.8 1.5l6.3 3.9a1.72 1.72 0 0 0 1.7 0l10.3-6c.5-.3.9-1 .9-1.5Z"/><path d="M10 21.9V14L2.1 9.1"/><path d="m10 14 11.9-6.9"/><path d="M14 19.8v-8.1"/><path d="M18 17.5V9.4"/>"#
+            }
+            Self::Terminal => r#"<path d="M12 19h8"/><path d="m4 17 6-6-6-6"/>"#,
             Self::Monitor => {
                 r#"<rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>"#
             }

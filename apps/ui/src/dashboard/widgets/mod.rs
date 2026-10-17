@@ -2,9 +2,12 @@
 
 pub mod clock;
 pub mod disks;
+pub mod docker;
 pub mod format;
 pub mod gpu;
 pub mod history;
 pub mod network;
 pub mod parts;
+pub mod projects;
 pub mod usage;
+pub mod wsl;

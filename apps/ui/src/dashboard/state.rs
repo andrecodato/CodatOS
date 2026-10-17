@@ -7,8 +7,14 @@ use serde::de::DeserializeOwned;
 use crate::api::{CoreStatus, Sample};
 use crate::components::icon::{Icon, Svg};
 
-/// Código de erro dos coletores para "não há essa fonte de dados aqui".
-const UNAVAILABLE: &str = "unavailable";
+/// Erros que não são falha: a fonte não existe neste PC ou não tem nada para mostrar.
+/// Viram um aviso discreto em vez do alerta vermelho.
+const SOFT: &[&str] = &[
+    "unavailable",
+    "unknown_topic",
+    "docker_not_running",
+    "no_projects",
+];
 
 /// Dado por cada widget da grade: incrementar remonta o conteúdo, refazendo as assinaturas.
 #[derive(Debug, Clone, Copy)]
@@ -31,8 +37,8 @@ where
     (move || match sample.get() {
         None => view! { <Skeleton /> }.into_any(),
         // Fonte que não existe nesta máquina (sem GPU NVIDIA, sem sensor): não é falha.
-        Some(Err(problem)) if problem.code == UNAVAILABLE => view! {
-            <Unavailable title=problem.title />
+        Some(Err(problem)) if SOFT.contains(&problem.code.as_str()) => view! {
+            <Unavailable code=problem.code title=problem.title />
         }
         .into_any(),
         Some(Err(problem)) => view! {
@@ -105,11 +111,19 @@ fn Stale() -> impl IntoView {
 }
 
 #[component]
-fn Unavailable(title: String) -> impl IntoView {
+fn Unavailable(code: String, title: String) -> impl IntoView {
+    let (heading, detail) = match code.as_str() {
+        "unknown_topic" => (
+            "Indisponível neste sistema",
+            "Este widget depende de um recurso de outro sistema operacional.".to_owned(),
+        ),
+        "unavailable" => ("Indisponível neste PC", title),
+        _ => ("Nada por aqui", title),
+    };
     view! {
         <div class="flex h-full flex-col items-start justify-center gap-1 text-sm">
-            <p class="font-medium text-muted">"Indisponível neste PC"</p>
-            <p class="text-xs text-subtle">{title}</p>
+            <p class="font-medium text-muted">{heading}</p>
+            <p class="text-xs text-subtle">{detail}</p>
         </div>
     }
 }
