@@ -368,7 +368,7 @@ fn group_chain<'a>(
 }
 
 /// Aplica a herança dos grupos ao host `id`.
-pub(crate) fn effective(all: &Connections, id: &str) -> Option<EffectiveHost> {
+pub fn effective(all: &Connections, id: &str) -> Option<EffectiveHost> {
     let host = all.hosts.iter().find(|h| h.id == id)?;
     let groups: HashMap<&str, &HostGroup> = all.groups.iter().map(|g| (g.id.as_str(), g)).collect();
     let chain = group_chain(&groups, host.group_id.as_deref());

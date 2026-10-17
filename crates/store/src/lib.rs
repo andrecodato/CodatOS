@@ -19,7 +19,7 @@ use std::str::FromStr;
 use sqlx::SqlitePool;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
 
-pub use connections::EffectiveHost;
+pub use connections::{EffectiveHost, effective};
 pub use connections_rpc::connection_methods;
 pub use keychain::{Keychain, KeychainError, os_keychain};
 pub use methods::methods;
