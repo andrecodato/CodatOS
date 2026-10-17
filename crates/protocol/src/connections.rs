@@ -16,6 +16,13 @@ pub const METHOD_GROUP_DELETE: &str = "connections.deleteGroup";
 /// Senha nova exige o cofre aberto (`vault_locked`).
 pub const METHOD_IDENTITY_SAVE: &str = "connections.saveIdentity";
 pub const METHOD_IDENTITY_DELETE: &str = "connections.deleteIdentity";
+/// Gera uma chave SSH nova ([`GenerateKey`]); devolve o [`SshKey`].
+pub const METHOD_KEY_GENERATE: &str = "keys.generate";
+/// Importa uma chave OpenSSH ou PuTTY ([`ImportKey`]); devolve o [`SshKey`].
+pub const METHOD_KEY_IMPORT: &str = "keys.import";
+pub const METHOD_KEY_RENAME: &str = "keys.rename";
+/// Identidades que usavam a chave ficam sem chave.
+pub const METHOD_KEY_DELETE: &str = "keys.delete";
 
 /// Porta padrão do SSH.
 pub const DEFAULT_SSH_PORT: u16 = 22;
@@ -25,6 +32,13 @@ pub mod errors {
     pub const NOT_FOUND: &str = "connection_not_found";
     /// Um grupo dentro dele mesmo, ou um jump host que volta ao host.
     pub const CYCLE: &str = "connection_cycle";
+    /// Chave cifrada sem passphrase no pedido.
+    pub const KEY_PASSPHRASE_REQUIRED: &str = "key_passphrase_required";
+    pub const KEY_WRONG_PASSPHRASE: &str = "key_wrong_passphrase";
+    /// Texto que não é uma chave privada reconhecida.
+    pub const KEY_INVALID: &str = "key_invalid";
+    /// PEM antigo (PKCS#1/PKCS#8/SEC1): converter com `ssh-keygen -p`.
+    pub const KEY_UNSUPPORTED_FORMAT: &str = "key_unsupported_format";
 }
 
 /// Resultado de `connections.list`.
@@ -34,6 +48,8 @@ pub struct Connections {
     pub groups: Vec<HostGroup>,
     pub hosts: Vec<Host>,
     pub identities: Vec<Identity>,
+    #[serde(default)]
+    pub keys: Vec<SshKey>,
 }
 
 /// Grupo (pasta) de hosts. Os hosts herdam o que não definirem (RF-CON-002).
@@ -155,6 +171,62 @@ pub enum PasswordChange {
     Keep,
     Clear,
     Set(String),
+}
+
+/// Chave SSH guardada (RF-CON-011). A chave privada fica selada pelo cofre e nunca sai do
+/// núcleo; a pública vai inteira, para copiar.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SshKey {
+    pub id: String,
+    pub name: String,
+    /// Nome do algoritmo no SSH: `ssh-ed25519`, `ecdsa-sha2-nistp256`, `ssh-rsa`…
+    pub algorithm: String,
+    /// Linha `authorized_keys` (`ssh-ed25519 AAAA… comentário`).
+    pub public_key: String,
+    /// `SHA256:…`, como o `ssh-keygen -l`.
+    pub fingerprint: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum KeyAlgorithm {
+    Ed25519,
+    EcdsaP256,
+    EcdsaP384,
+    /// RSA de 4096 bits (gerar leva alguns segundos).
+    Rsa4096,
+}
+
+/// Parâmetros de `keys.generate`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GenerateKey {
+    pub id: String,
+    pub name: String,
+    pub algorithm: KeyAlgorithm,
+    /// Comentário da chave pública; vazio usa o nome.
+    #[serde(default)]
+    pub comment: String,
+}
+
+/// Parâmetros de `keys.import`. O texto e a passphrase só existem no núcleo durante a
+/// chamada: a chave é guardada decifrada da passphrase e selada pelo cofre.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportKey {
+    pub id: String,
+    pub name: String,
+    pub private_key: String,
+    #[serde(default)]
+    pub passphrase: Option<String>,
+}
+
+/// Parâmetros de `keys.rename`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RenameKey {
+    pub id: String,
+    pub name: String,
 }
 
 /// Parâmetros dos métodos `delete*`.
