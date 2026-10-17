@@ -51,6 +51,7 @@ Benchmarks de cada marco, com método e números, em [benchmarks/](benchmarks/):
 | Marco | Documento |
 |---|---|
 | M0 | [RAM e CPU em repouso](benchmarks/m0.md) |
+| M1 | [Repouso, janela aberta e tempo de abertura](benchmarks/m1.md) |
 
 ## Convenções
 
