@@ -1,5 +1,6 @@
 //! Terminais locais (PowerShell, cmd, `$SHELL`), WSL e Docker num PTY (`portable-pty`,
-//! `ConPTY` no Windows), ligados a um canal binário do WebSocket.
+//! `ConPTY` no Windows), ligados a um canal binário do WebSocket. Sessões SSH ficam em
+//! [`crate::ssh`].
 //!
 //! O PTY é bloqueante: uma thread lê a saída e outra escreve a entrada; o canal faz a
 //! ponte com o runtime. O conteúdo do terminal nunca vai para log (R-06).
@@ -11,9 +12,13 @@ use codatos_core::{Channel, ChannelEvent, ChannelMethod, MethodError, MethodFutu
 use codatos_protocol::terminal::{
     LocalShell, METHOD_TERMINAL_OPEN, OpenTerminal, TerminalTarget, errors,
 };
+use codatos_store::{Store, Vault};
 use portable_pty::{CommandBuilder, MasterPty, PtySize, native_pty_system};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
+use zeroize::Zeroizing;
+
+use crate::ssh::{self, Ssh};
 
 /// Saída lida do PTY por vez.
 const READ_CHUNK: usize = 16 * 1024;
@@ -22,7 +27,18 @@ const OUTPUT_QUEUE: usize = 16;
 
 /// `terminal.open`.
 #[derive(Debug, Default)]
-pub struct OpenTerminalMethod;
+pub struct OpenTerminalMethod {
+    ssh: Option<Ssh>,
+}
+
+impl OpenTerminalMethod {
+    /// Com banco e cofre, abre também sessões SSH; sem eles, só terminais deste PC.
+    pub fn new(connections: Option<(Store, Vault)>) -> Self {
+        Self {
+            ssh: connections.map(|(store, vault)| Ssh { store, vault }),
+        }
+    }
+}
 
 impl ChannelMethod for OpenTerminalMethod {
     fn name(&self) -> &'static str {
@@ -32,6 +48,26 @@ impl ChannelMethod for OpenTerminalMethod {
     fn open(&self, value: Value, channel: Channel) -> MethodFuture<'_> {
         Box::pin(async move {
             let p: OpenTerminal = params(value)?;
+            if let TerminalTarget::Ssh {
+                host_id,
+                username,
+                password,
+                trust_host_key,
+            } = p.target
+            {
+                let ssh = self.ssh.as_ref().ok_or_else(|| {
+                    MethodError::new("vault_absent", "Banco local ou cofre indisponível")
+                })?;
+                let request = ssh::Request {
+                    host_id,
+                    username,
+                    password: password.map(Zeroizing::new),
+                    trust_host_key,
+                    cols: p.cols,
+                    rows: p.rows,
+                };
+                return ssh.open(request, channel).await;
+            }
             let (command, title) = command_for(&p.target)?;
             let size = PtySize {
                 rows: p.rows.clamp(2, 500),
@@ -213,6 +249,7 @@ fn command_for(target: &TerminalTarget) -> Result<(CommandBuilder, String), Meth
             ]);
             (c, container.clone())
         }
+        TerminalTarget::Ssh { .. } => unreachable!("sessões SSH não usam PTY local"),
     };
     command.env("TERM", "xterm-256color");
     command.env("COLORTERM", "truecolor");

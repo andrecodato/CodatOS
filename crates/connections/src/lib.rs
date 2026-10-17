@@ -1,5 +1,6 @@
-//! Conexões do CodatOS (`docs/modulos/conexoes.md`): chaves SSH, `~/.ssh/config` e
-//! terminais locais por enquanto; sessões SSH, SFTP e túneis chegam nas próximas PRs do M2.
+//! Conexões do CodatOS (`docs/modulos/conexoes.md`): chaves SSH, `~/.ssh/config`,
+//! terminais locais e sessões SSH por enquanto; jump hosts, SFTP e túneis chegam nas
+//! próximas PRs do M2.
 //!
 //! Segredos (chaves privadas, senhas) só são decifrados aqui, no núcleo, e nunca vão para
 //! a UI (RNF-SEG-09).
@@ -7,6 +8,7 @@
 mod ids;
 pub mod keys;
 mod keys_rpc;
+mod ssh;
 pub mod ssh_config;
 mod ssh_config_rpc;
 mod terminal;
