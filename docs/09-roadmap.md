@@ -25,6 +25,7 @@ flowchart LR
 - Shell Tauri + UI Leptos "hello", tokens do design system, sidebar e topbar.
 - Núcleo com Axum em `127.0.0.1`, WebSocket RPC, autostart, bandeja, instância única, janela destruída ao fechar.
 - **Saída**: instalador assinado (ao menos Windows) que inicia com o sistema e abre uma janela vazia no visual do mockup; RAM em repouso medida.
+- **Situação (2026-10-17)**: ✅ concluído, exceto a **assinatura** do instalador, que espera a [Q-29](10-perguntas-em-aberto.md) (o workflow de release já assina quando os secrets existirem). RAM em repouso: 30 MB ([medição](benchmarks/m0.md)).
 
 ## M1 · Dashboard local
 

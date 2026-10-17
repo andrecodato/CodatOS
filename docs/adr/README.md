@@ -6,9 +6,9 @@ Cada ADR registra **uma** decisão: o contexto, o que foi decidido, as alternati
 
 | ADR | Título | Status |
 |---|---|---|
-| [0001](0001-monorepo.md) | Monorepo com workspace Cargo + pnpm | Proposto |
+| [0001](0001-monorepo.md) | Monorepo com workspace Cargo + pnpm | Aceito |
 | [0002](0002-tauri-e-leptos.md) | App desktop com Tauri 2 e UI em Leptos (Rust/WASM) | **Aceito** |
-| [0003](0003-agente-local-api-unica.md) | Núcleo local com uma API única para desktop, navegador e celular | Proposto |
+| [0003](0003-agente-local-api-unica.md) | Núcleo local com uma API única para desktop, navegador e celular | Aceito |
 | [0004](0004-criptografia-ponta-a-ponta.md) | Criptografia ponta a ponta (zero-knowledge) em vez de hash para segredos | Proposto |
 | [0005](0005-local-first.md) | Local-first: dados vivem no dispositivo; a nuvem sincroniza configurações | Proposto |
 | [0006](0006-nestjs-postgres.md) | Nuvem em NestJS + PostgreSQL + Valkey | Proposto |

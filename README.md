@@ -10,7 +10,7 @@ Finanças, tarefas, agenda, servidores e a saúde do seu PC numa tela só —<br
 
 [O que faz](#-o-que-ele-faz) · [Privacidade](#-privacidade-de-verdade) · [Planos](#-gratuito-e-open-source) · [Status](#-status-do-projeto) · [Documentação](docs/README.md)
 
-![Status](https://img.shields.io/badge/status-em%20planejamento-7C5CFF?style=flat-square)
+![Status](https://img.shields.io/badge/status-em%20desenvolvimento-7C5CFF?style=flat-square)
 ![Plataformas](https://img.shields.io/badge/Windows%20%7C%20macOS%20%7C%20Linux-3B82F6?style=flat-square)
 ![Feito com Rust](https://img.shields.io/badge/feito%20com-Rust-F59E0B?style=flat-square)
 ![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-22C55E?style=flat-square)
@@ -78,11 +78,11 @@ Prefere não depender de ninguém? A ideia é que você possa **hospedar seu pr�
 
 ## 🧭 Status do projeto
 
-O CodatOS está **em planejamento**. A documentação completa já está disponível e o desenvolvimento começa em breve.
+O CodatOS está **em desenvolvimento**. A fundação (M0) está pronta: o app abre com o sistema, mora na bandeja e usa cerca de 30 MB de RAM parado ([medição](docs/benchmarks/m0.md)). Falta só assinar o instalador do Windows.
 
 - [x] Visão, requisitos e arquitetura
 - [x] Protótipo do site com o mosaico interativo
-- [ ] **M0** · Fundação — o app abre com o sistema e mora na bandeja
+- [x] **M0** · Fundação — o app abre com o sistema e mora na bandeja
 - [ ] **M1** · Dashboard local — PC, discos, WSL, Docker, projetos e clima
 - [ ] **M2** · Conexões — SSH, SFTP, chaves e túneis
 - [ ] **M3** · Produtividade — financeiro, TaskHub e agenda
