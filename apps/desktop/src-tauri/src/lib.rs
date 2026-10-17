@@ -136,6 +136,8 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
                 .ok()
                 .flatten()
         };
+        let terminal =
+            codatos_connections::OpenTerminalMethod::new(store.clone().zip(vault.clone()));
         let config = ServerConfig {
             port: DEFAULT_PORT,
             ui_dir,
@@ -167,7 +169,7 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
                         as std::sync::Arc<dyn codatos_core::Collector>
                 }))
                 .collect(),
-            channel_methods: vec![std::sync::Arc::new(codatos_connections::OpenTerminalMethod)],
+            channel_methods: vec![std::sync::Arc::new(terminal)],
         };
         match codatos_core::start(config).await {
             // O servidor para quando o processo termina.

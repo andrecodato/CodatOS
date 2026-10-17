@@ -1,5 +1,5 @@
-//! Tabelas `host_groups`, `hosts`, `identities` e `ssh_keys`, e a herança de configuração dos grupos
-//! (RF-CON-002).
+//! Tabelas `host_groups`, `hosts`, `identities`, `ssh_keys` e `known_hosts`, e a herança de
+//! configuração dos grupos (RF-CON-002).
 
 use std::collections::{HashMap, HashSet};
 
@@ -307,6 +307,40 @@ impl Store {
         Ok(row.and_then(|(sealed,)| sealed))
     }
 
+    /// Fingerprints aceitas para `host:porta`: `(tipo da chave, fingerprint)`.
+    pub async fn known_hosts(&self, pattern: &str) -> Result<Vec<(String, String)>, Error> {
+        Ok(sqlx::query_as(
+            "SELECT key_type, fingerprint FROM known_hosts WHERE host_pattern = ? ORDER BY key_type",
+        )
+        .bind(pattern)
+        .fetch_all(&self.pool)
+        .await?)
+    }
+
+    /// Aceita a chave do servidor `host:porta`, no lugar das aceitas antes.
+    pub async fn trust_host_key(
+        &self,
+        pattern: &str,
+        key_type: &str,
+        fingerprint: &str,
+    ) -> Result<(), Error> {
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("DELETE FROM known_hosts WHERE host_pattern = ?")
+            .bind(pattern)
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query(
+            "INSERT INTO known_hosts (host_pattern, key_type, fingerprint) VALUES (?, ?, ?)",
+        )
+        .bind(pattern)
+        .bind(key_type)
+        .bind(fingerprint)
+        .execute(&mut *tx)
+        .await?;
+        tx.commit().await?;
+        Ok(())
+    }
+
     /// O host com a herança dos grupos aplicada. `None` se não existe.
     pub async fn effective_host(&self, id: &str) -> Result<Option<EffectiveHost>, Error> {
         Ok(effective(&self.connections().await?, id))
@@ -450,6 +484,25 @@ mod tests {
             .unwrap()
             .extend(extra.as_object().unwrap().clone());
         serde_json::from_value(v).unwrap()
+    }
+
+    #[tokio::test]
+    async fn known_hosts_troca_a_chave_aceita() {
+        let store = Store::in_memory().await.unwrap();
+        assert_eq!(store.known_hosts("srv:22").await.unwrap(), []);
+        store
+            .trust_host_key("srv:22", "ssh-ed25519", "SHA256:a")
+            .await
+            .unwrap();
+        store
+            .trust_host_key("srv:22", "ecdsa-sha2-nistp256", "SHA256:b")
+            .await
+            .unwrap();
+        assert_eq!(
+            store.known_hosts("srv:22").await.unwrap(),
+            [("ecdsa-sha2-nistp256".to_owned(), "SHA256:b".to_owned())]
+        );
+        assert_eq!(store.known_hosts("srv:2222").await.unwrap(), []);
     }
 
     #[test]
