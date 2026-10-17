@@ -15,3 +15,5 @@ mod parse;
 
 #[cfg(windows)]
 pub use collector::WslCollector;
+#[cfg(windows)]
+pub(crate) use collector::running;

@@ -1,23 +1,19 @@
 //! Coletor `wsl.distros` (Windows).
 
 use std::path::PathBuf;
-use std::process::Stdio;
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
 use codatos_core::{CollectError, CollectFuture, Collector, Intervals};
 use codatos_protocol::system::{TOPIC_WSL, WslDistro, WslStatus, WslVm};
 use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
-use tokio::process::Command;
 use winreg::RegKey;
 use winreg::enums::HKEY_CURRENT_USER;
 
 use super::parse;
+use crate::command;
 
-/// Sem isso, cada chamada ao `wsl.exe` piscaria uma janela de console.
-const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 const LXSS: &str = r"Software\Microsoft\Windows\CurrentVersion\Lxss";
-const COMMAND_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Debug, Default)]
 pub struct WslCollector {
@@ -146,25 +142,18 @@ fn registered() -> Result<Vec<Registered>, CollectError> {
     Ok(list)
 }
 
-/// Roda o `wsl.exe` sem janela e com prazo; `None` em qualquer falha.
+/// Roda o `wsl.exe`; `None` em qualquer falha.
 async fn wsl(args: &[&str]) -> Option<String> {
-    let mut command = Command::new("wsl.exe");
-    command
-        .args(args)
-        .env("WSL_UTF8", "1")
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .kill_on_drop(true)
-        .creation_flags(CREATE_NO_WINDOW);
-    let output = tokio::time::timeout(COMMAND_TIMEOUT, command.output())
-        .await
-        .ok()?
-        .ok()?;
-    output
-        .status
-        .success()
-        .then(|| parse::decode(&output.stdout))
+    command::output("wsl.exe", args, command::TIMEOUT).await
+}
+
+/// Distros ligadas agora.
+pub(crate) async fn running() -> Vec<String> {
+    parse::running_names(
+        &wsl(&["--list", "--running", "--quiet"])
+            .await
+            .unwrap_or_default(),
+    )
 }
 
 impl VmProcess {
