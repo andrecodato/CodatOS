@@ -42,9 +42,21 @@ Mensagens **JSON-RPC 2.0** para comandos e assinaturas; frames **binários** par
 ← {"jsonrpc":"2.0","id":7,"result":[{"id":"3f2a…","name":"api","image":"node:22","state":"running","uptimeS":8040}]}
 
 → {"jsonrpc":"2.0","id":8,"method":"subscribe","params":{"topic":"system.metrics","intervalMs":2000}}
-← {"jsonrpc":"2.0","id":8,"result":{"sub":"s1"}}
+← {"jsonrpc":"2.0","id":8,"result":{"sub":"s1","intervalMs":2000}}
 ← {"jsonrpc":"2.0","method":"event","params":{"sub":"s1","data":{"cpu":12.4,"ram":{"used":7600000000,"total":16000000000}}}}
+← {"jsonrpc":"2.0","method":"event","params":{"sub":"s1","error":{"type":"https://codatos.dev/problems/collector_timeout","title":"A coleta demorou demais","code":"collector_timeout"}}}
+
+→ {"jsonrpc":"2.0","id":9,"method":"unsubscribe","params":{"sub":"s1"}}
+← {"jsonrpc":"2.0","id":9,"result":true}
 ```
+
+Regras das assinaturas:
+
+- `intervalMs` é ajustado ao mínimo do tópico (em geral 500 ms) e a no máximo 1 h; a resposta traz o valor efetivo.
+- Um coletor só roda enquanto houver assinantes, e todos os assinantes de um tópico dividem a mesma coleta. Sem assinantes (janela fechada, aba oculta), nada é coletado.
+- Falha ou *timeout* de um coletor chega como `event` com `error` (*problem details*) só naquela assinatura; depois de falhas seguidas, o intervalo dobra até 60 s.
+- `session.hello` lista em `capabilities` os tópicos disponíveis nesta máquina (ex.: `wsl.distros` só no Windows).
+- Até 64 assinaturas por conexão. Se o cliente não lê rápido o bastante, eventos são descartados, nunca acumulados.
 
 ### Catálogo de métodos (inicial)
 

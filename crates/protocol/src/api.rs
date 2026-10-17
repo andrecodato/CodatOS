@@ -42,3 +42,41 @@ pub struct Hello {
     pub api: u32,
     pub capabilities: Vec<String>,
 }
+
+/// Método das notificações que o núcleo empurra para cada assinatura.
+pub const EVENT_METHOD: &str = "event";
+
+/// Parâmetros de `subscribe`. `interval_ms` é ajustado ao mínimo e ao máximo do tópico.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscribeParams {
+    pub topic: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interval_ms: Option<u64>,
+}
+
+/// Resultado de `subscribe`: o id usado nos eventos e em `unsubscribe`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Subscribed {
+    pub sub: String,
+    /// Intervalo efetivo depois do ajuste.
+    pub interval_ms: u64,
+}
+
+/// Parâmetros de `unsubscribe`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UnsubscribeParams {
+    pub sub: String,
+}
+
+/// Parâmetros da notificação `event`: `data` com a amostra ou `error` quando o coletor
+/// falhou. O erro vale só para o widget daquele tópico (RF-DASH-009).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EventParams {
+    pub sub: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data: Option<serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<crate::rpc::Problem>,
+}
