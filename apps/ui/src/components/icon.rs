@@ -16,6 +16,9 @@ pub enum Icon {
     Bell,
     Alert,
     ChevronsUpDown,
+    Minus,
+    Square,
+    X,
 }
 
 impl Icon {
@@ -51,6 +54,9 @@ impl Icon {
                 r#"<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>"#
             }
             Self::ChevronsUpDown => r#"<path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/>"#,
+            Self::Minus => r#"<path d="M5 12h14"/>"#,
+            Self::Square => r#"<rect width="18" height="18" x="3" y="3" rx="2"/>"#,
+            Self::X => r#"<path d="M18 6 6 18"/><path d="m6 6 12 12"/>"#,
         }
     }
 }

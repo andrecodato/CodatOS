@@ -3,5 +3,12 @@
   "identifier": "default",
   "description": "IPC mínimo da janela principal (ADR-0003: o resto passa pela API do núcleo)",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": [
+    "allow-get-session-token",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-internal-toggle-maximize",
+    "core:window:allow-close",
+    "core:window:allow-start-dragging"
+  ]
 }
