@@ -37,7 +37,9 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$ExePath = (Join-Path $PSScriptRoot '..\target\x86_64-pc-windows-msvc\release\codatos.exe'),
+    # Vazio = o binário do `just build-win` (resolvido abaixo; no Windows PowerShell
+    # 5.1 o $PSScriptRoot pode vir vazio dentro do param()).
+    [string]$ExePath = '',
     [ValidateRange(0, 3600)]
     [int]$WaitSeconds = 30,
     [ValidateRange(0, 600)]
@@ -48,6 +50,17 @@ param(
 
 Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
+
+if (-not $ExePath) {
+    # Raiz do repo: pela pasta do script; se o PowerShell não informar, pela pasta atual
+    # (o `just measure-idle` roda na raiz).
+    $scriptDir = $PSScriptRoot
+    if (-not $scriptDir -and $MyInvocation.MyCommand.Path) {
+        $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+    }
+    $repoRoot = if ($scriptDir) { Split-Path -Parent $scriptDir } else { (Get-Location).ProviderPath }
+    $ExePath = Join-Path $repoRoot 'target\x86_64-pc-windows-msvc\release\codatos.exe'
+}
 
 # GUID do WebView2 Runtime (Evergreen) no EdgeUpdate.
 $WebView2Guid = '{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
