@@ -71,7 +71,7 @@ Regras das assinaturas:
 | WSL | `wsl.list`, `wsl.start`, `wsl.terminate`, `wsl.shutdown`, `wsl.setDefault` |
 | Docker | `docker.engines`, `docker.containers.list`, `docker.container.start/stop/restart`, `docker.logs.follow` |
 | Projetos | `projects.list`, `projects.open`, `projects.roots.save` |
-| Conexões | `hosts.*`, `identities.*`, `keys.generate/import/exportPublic`, `knownHosts.*`, `snippets.*`, `tunnels.*` |
+| Conexões | `connections.list` (grupos, hosts e identidades, sem segredos), `connections.saveHost/deleteHost`, `connections.saveGroup/deleteGroup` (filhos sobem para o pai), `connections.saveIdentity/deleteIdentity` (`password`: `keep`/`clear`/`set`; senha nova exige o cofre aberto e nunca volta à UI); depois `keys.generate/import/exportPublic`, `knownHosts.*`, `snippets.*`, `tunnels.*` |
 | Terminal | `terminal.open(hostId \| local \| wsl \| docker)` → `channel`, `terminal.resize`, `terminal.close` |
 | SFTP | `sftp.open`, `sftp.list`, `sftp.mkdir/rename/remove/chmod`, `sftp.transfer` → `channel` |
 | Financeiro | `finance.accounts.*`, `finance.transactions.*`, `finance.import`, `finance.summary` |

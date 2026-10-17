@@ -12,7 +12,7 @@
 
 ## Banco local (SQLite)
 
-Arquivo único cifrado (SQLCipher) por perfil de usuário. Colunas marcadas com 🔒 são cifradas **também** com a chave do cofre (exigem desbloqueio).
+Arquivo único cifrado (SQLCipher) por perfil de usuário. Colunas marcadas com 🔒 são cifradas **também** com a chave do cofre (exigem desbloqueio). No banco elas aparecem com o sufixo `_sealed` (ex.: `password_sealed`) e guardam o envelope JSON do cofre, com o id da linha na AAD.
 
 ### Núcleo e preferências
 
