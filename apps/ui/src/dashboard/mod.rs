@@ -82,6 +82,8 @@ struct Board {
     history: RwSignal<History>,
     drag: StoredValue<Option<Drag>>,
     dragging: RwSignal<Option<usize>>,
+    /// Widget com o diálogo de configuração aberto.
+    configuring: RwSignal<Option<String>>,
     grid: NodeRef<html::Div>,
 }
 
@@ -94,6 +96,7 @@ impl Board {
             history: RwSignal::new(History::default()),
             drag: StoredValue::new(None),
             dragging: RwSignal::new(None),
+            configuring: RwSignal::new(None),
             grid: NodeRef::new(),
         }
     }
@@ -146,6 +149,14 @@ impl Board {
                 cell: grid::free_spot(&cells, kind.size.0, kind.size.1),
                 config: json!({}),
             });
+        });
+    }
+
+    fn set_config(self, id: &str, config: Value) {
+        self.change(|items| {
+            if let Some(item) = items.iter_mut().find(|i| i.id == id) {
+                item.config = config;
+            }
         });
     }
 
@@ -395,8 +406,7 @@ pub fn Dashboard(status: ReadSignal<CoreStatus>) -> impl IntoView {
 
     let finish = move || {
         if load.get_untracked() != Load::Ready {
-            board.editing.set(false);
-            catalog_open.set(false);
+            leave_edit(board, catalog_open);
             return;
         }
         let Some(saved) = board.to_saved() else {
@@ -413,8 +423,7 @@ pub fn Dashboard(status: ReadSignal<CoreStatus>) -> impl IntoView {
             saving.set(false);
             match result {
                 Ok(_) => {
-                    board.editing.set(false);
-                    catalog_open.set(false);
+                    leave_edit(board, catalog_open);
                     board.history.set(History::default());
                 }
                 Err(e) => save_error.set(Some(e.message)),
@@ -463,8 +472,15 @@ pub fn Dashboard(status: ReadSignal<CoreStatus>) -> impl IntoView {
             <Show when=move || catalog_open.get()>
                 <Catalog open=catalog_open />
             </Show>
+            {move || board.configuring.get().map(|id| view! { <ConfigDialog id=id /> })}
         </section>
     }
+}
+
+fn leave_edit(board: Board, catalog_open: RwSignal<bool>) {
+    board.editing.set(false);
+    board.configuring.set(None);
+    catalog_open.set(false);
 }
 
 /// Ctrl + Z / Ctrl + Shift + Z (ou Ctrl + Y) no modo edição.
@@ -587,7 +603,7 @@ fn Grid(catalog_open: RwSignal<bool>) -> impl IntoView {
                 }
             >
                 <For each=move || board.items.get() key=|item| item.id.clone() let:item>
-                    <GridItem id=item.id kind=item.kind config=item.config />
+                    <GridItem id=item.id kind=item.kind />
                 </For>
             </div>
         </Show>
@@ -595,7 +611,7 @@ fn Grid(catalog_open: RwSignal<bool>) -> impl IntoView {
 }
 
 #[component]
-fn GridItem(id: String, kind: String, config: Value) -> impl IntoView {
+fn GridItem(id: String, kind: String) -> impl IntoView {
     let board = expect_context::<Board>();
     let kind_ref = catalog::find(&kind);
     let id = StoredValue::new(id);
@@ -639,11 +655,16 @@ fn GridItem(id: String, kind: String, config: Value) -> impl IntoView {
     provide_context(retry);
     let title = kind_ref.map_or("Widget desconhecido", |k| k.name);
     let icon = kind_ref.map_or(Icon::Alert, |k| k.icon);
-    let config = StoredValue::new(config);
+    // Mudar a configuração remonta o conteúdo do widget com ela.
+    let config = Memo::new(move |_| {
+        board
+            .items
+            .with(|v| id.with_value(|id| v.iter().find(|i| &i.id == id).map(|i| i.config.clone())))
+    });
     let body = move || {
         retry.0.track();
         match kind_ref {
-            Some(k) => config.with_value(|c| (k.render)(c)),
+            Some(k) => config.with(|c| (k.render)(c.as_ref().unwrap_or(&Value::Null))),
             None => view! {
                 <ErrorState title="Este widget não existe nesta versão".to_owned() detail=kind.clone() />
             }
@@ -685,6 +706,16 @@ fn GridItem(id: String, kind: String, config: Value) -> impl IntoView {
                         >
                             <Svg icon=Icon::Grip size=16 />
                         </button>
+                        {kind_ref.and_then(|k| k.editor).map(|_| view! {
+                            <button
+                                type="button"
+                                class="rounded p-1 hover:bg-card-hover hover:text-fg"
+                                aria-label=format!("Configurar {title}")
+                                on:click=move |_| board.configuring.set(Some(id.get_value()))
+                            >
+                                <Svg icon=Icon::Settings size=16 />
+                            </button>
+                        })}
                         <button
                             type="button"
                             class="rounded p-1 hover:bg-card-hover hover:text-danger"
@@ -732,6 +763,70 @@ fn BoardSkeleton() -> impl IntoView {
                 })}
         </div>
     }
+}
+
+/// Configuração de uma instância (RF-DASH-004). Aplicar entra no desfazer e é gravado
+/// junto com o layout ao concluir.
+#[component]
+fn ConfigDialog(id: String) -> impl IntoView {
+    let board = expect_context::<Board>();
+    let item = board
+        .items
+        .with_untracked(|v| v.iter().find(|i| i.id == id).cloned());
+    let Some(item) = item else {
+        return ().into_any();
+    };
+    let Some(kind) = catalog::find(&item.kind) else {
+        return ().into_any();
+    };
+    let Some(editor) = kind.editor else {
+        return ().into_any();
+    };
+    let draft = RwSignal::new(item.config);
+    let close = move || board.configuring.set(None);
+    let keys = window_event_listener(ev::keydown, move |e| {
+        if e.key() == "Escape" {
+            close();
+        }
+    });
+    on_cleanup(move || keys.remove());
+    let id = StoredValue::new(id);
+
+    view! {
+        <div class="fixed inset-0 z-40 bg-app/60" on:click=move |_| close()></div>
+        <div
+            role="dialog"
+            aria-modal="true"
+            aria-label=format!("Configurar {}", kind.name)
+            class="fixed top-1/2 left-1/2 z-50 flex max-h-[80vh] w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl border border-line bg-sidebar shadow-card"
+        >
+            <header class="flex items-center gap-2 border-b border-line px-5 py-4">
+                <Svg icon=kind.icon size=16 />
+                <h2 class="text-sm font-semibold">{format!("Configurar {}", kind.name)}</h2>
+            </header>
+            <div class="flex-1 overflow-auto p-5">{editor(draft)}</div>
+            <footer class="flex justify-end gap-2 border-t border-line px-5 py-3">
+                <button
+                    type="button"
+                    class="rounded-md px-3 py-1.5 text-sm text-muted hover:bg-card-hover hover:text-fg"
+                    on:click=move |_| close()
+                >
+                    "Cancelar"
+                </button>
+                <button
+                    type="button"
+                    class="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-hover"
+                    on:click=move |_| {
+                        id.with_value(|id| board.set_config(id, draft.get_untracked()));
+                        close();
+                    }
+                >
+                    "Aplicar"
+                </button>
+            </footer>
+        </div>
+    }
+    .into_any()
 }
 
 /// Painel lateral com busca para adicionar widgets.

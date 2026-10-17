@@ -477,3 +477,44 @@ async fn redeem_url_token() -> Result<(), JsValue> {
         .replace_state_with_url(&JsValue::NULL, "", Some(&clean))?;
     Ok(())
 }
+
+/// Endereço que pode sair do app: só `http(s)://` (nada de `javascript:`, `file:`…).
+pub fn is_web_url(url: &str) -> bool {
+    let lower = url.trim().to_ascii_lowercase();
+    (lower.starts_with("https://") || lower.starts_with("http://"))
+        && lower.len() > "https://".len()
+}
+
+/// Abre um link no navegador padrão. Na janela do app vai pelo plugin `opener` (a janela não
+/// abre janelas novas); no navegador, numa aba nova sem `opener`.
+pub fn open_external(url: &str) {
+    if !is_web_url(url) {
+        return;
+    }
+    if in_tauri() {
+        let args = js_sys::Object::new();
+        let _ = js_sys::Reflect::set(&args, &"url".into(), &url.into());
+        spawn_local(async move {
+            if let Err(err) = invoke("plugin:opener|open_url", &args).await {
+                leptos::logging::warn!("não abriu o link: {err:?}");
+            }
+        });
+    } else {
+        let _ =
+            window().open_with_url_and_target_and_features(url, "_blank", "noopener,noreferrer");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_web_url;
+
+    #[test]
+    fn so_links_da_web_saem_do_app() {
+        assert!(is_web_url("https://open-meteo.com"));
+        assert!(is_web_url(" HTTP://192.168.0.10:8080 "));
+        assert!(!is_web_url("javascript:alert(1)"));
+        assert!(!is_web_url("file:///C:/Windows"));
+        assert!(!is_web_url("https://"));
+    }
+}

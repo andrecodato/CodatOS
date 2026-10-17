@@ -18,6 +18,8 @@ pub struct Kind {
     /// Menor tamanho em que o conteúdo ainda cabe.
     pub min: (u16, u16),
     pub render: fn(&Value) -> AnyView,
+    /// Formulário de configuração da instância, editando um rascunho da config.
+    pub editor: Option<fn(RwSignal<Value>) -> AnyView>,
 }
 
 impl std::fmt::Debug for Kind {
@@ -37,6 +39,7 @@ pub const KINDS: &[Kind] = &[
         size: (4, 2),
         min: (3, 2),
         render: widgets::usage::render,
+        editor: None,
     },
     Kind {
         id: "system.history",
@@ -46,6 +49,7 @@ pub const KINDS: &[Kind] = &[
         size: (6, 3),
         min: (4, 3),
         render: widgets::history::render,
+        editor: None,
     },
     Kind {
         id: "disks",
@@ -55,6 +59,7 @@ pub const KINDS: &[Kind] = &[
         size: (4, 3),
         min: (3, 2),
         render: widgets::disks::render,
+        editor: None,
     },
     Kind {
         id: "network",
@@ -64,6 +69,7 @@ pub const KINDS: &[Kind] = &[
         size: (4, 2),
         min: (3, 2),
         render: widgets::network::render,
+        editor: None,
     },
     Kind {
         id: "system.gpu",
@@ -73,6 +79,7 @@ pub const KINDS: &[Kind] = &[
         size: (4, 2),
         min: (3, 2),
         render: widgets::gpu::render,
+        editor: None,
     },
     Kind {
         id: "projects",
@@ -82,6 +89,7 @@ pub const KINDS: &[Kind] = &[
         size: (4, 4),
         min: (3, 3),
         render: widgets::projects::render,
+        editor: None,
     },
     Kind {
         id: "wsl",
@@ -91,6 +99,7 @@ pub const KINDS: &[Kind] = &[
         size: (4, 3),
         min: (3, 2),
         render: widgets::wsl::render,
+        editor: None,
     },
     Kind {
         id: "docker",
@@ -100,6 +109,27 @@ pub const KINDS: &[Kind] = &[
         size: (4, 3),
         min: (3, 2),
         render: widgets::docker::render,
+        editor: None,
+    },
+    Kind {
+        id: "weather",
+        name: "Tempo",
+        description: "Agora e próximos dias na sua cidade (Open-Meteo).",
+        icon: Icon::CloudSun,
+        size: (4, 3),
+        min: (3, 3),
+        render: widgets::weather::render,
+        editor: None,
+    },
+    Kind {
+        id: "links",
+        name: "Links rápidos",
+        description: "Atalhos para sites e painéis que você usa sempre.",
+        icon: Icon::Link,
+        size: (4, 2),
+        min: (2, 2),
+        render: widgets::links::render,
+        editor: Some(widgets::links::editor),
     },
     Kind {
         id: "clock",
@@ -109,6 +139,7 @@ pub const KINDS: &[Kind] = &[
         size: (3, 2),
         min: (2, 2),
         render: widgets::clock::render,
+        editor: None,
     },
 ];
 
