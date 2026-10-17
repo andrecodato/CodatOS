@@ -3,8 +3,10 @@
 //! O núcleo só os consulta enquanto alguém assina (`docs/02-arquitetura.md#coletores`).
 
 mod blocking;
+mod command;
 mod cpu_sensors;
 mod disks;
+mod docker;
 mod gpu;
 mod system;
 mod wsl;
@@ -15,6 +17,7 @@ use codatos_core::Collector;
 
 pub use cpu_sensors::CpuSensorsCollector;
 pub use disks::DisksCollector;
+pub use docker::DockerCollector;
 pub use gpu::GpuCollector;
 pub use system::{SystemInfoCollector, SystemMetricsCollector};
 #[cfg(windows)]
@@ -29,6 +32,7 @@ pub fn all() -> Vec<Arc<dyn Collector>> {
         Arc::new(DisksCollector),
         Arc::new(GpuCollector::default()),
         Arc::new(CpuSensorsCollector),
+        Arc::new(DockerCollector),
     ];
     #[cfg(windows)]
     list.push(Arc::new(WslCollector::default()));

@@ -155,3 +155,46 @@ pub struct WslVm {
     /// % do total da máquina (0–100), como no Gerenciador de Tarefas.
     pub cpu: f32,
 }
+
+/// Containers de cada engine Docker: o do host e os de dentro das distros WSL ligadas
+/// (RF-SYS-030 a 032).
+pub const TOPIC_DOCKER: &str = "docker.containers";
+
+/// Amostra de `docker.containers`. Cada engine aparece uma vez, mesmo visto do host e do
+/// WSL (Docker Desktop com integração WSL): a chave é o ID do engine.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DockerStatus {
+    pub engines: Vec<DockerEngine>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DockerEngine {
+    /// ID do `docker info`.
+    pub id: String,
+    /// Ex.: "docker-desktop", ou o hostname da distro.
+    pub name: String,
+    pub version: String,
+    /// Distro WSL onde o engine roda; `None` para o do host.
+    pub wsl_distro: Option<String>,
+    pub containers: Vec<Container>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Container {
+    pub id: String,
+    pub name: String,
+    pub image: String,
+    /// `running`, `exited`, `paused`…
+    pub state: String,
+    /// Texto do Docker, ex.: "Up 2 hours".
+    pub status: String,
+    pub ports: String,
+    /// Projeto Compose (`com.docker.compose.project`), para agrupar.
+    pub compose_project: Option<String>,
+    /// Só para containers em execução.
+    pub cpu: Option<f32>,
+    pub memory: Option<u64>,
+}
