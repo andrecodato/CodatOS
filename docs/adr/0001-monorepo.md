@@ -1,6 +1,6 @@
 # ADR-0001 · Monorepo com workspace Cargo + pnpm
 
-- **Status:** Proposto
+- **Status:** Aceito (2026-10-17, no fechamento do M0)
 - **Data:** 2026-10-14
 - **Relacionados:** [Arquitetura → estrutura](../02-arquitetura.md#estrutura-do-monorepo-planejada) · [Stack](../03-stack.md)
 

@@ -3,7 +3,7 @@
 > **Status:** Rascunho · **Versão:** 0.1 · **Atualizado:** 2026-10-14
 > ← [Arquitetura](02-arquitetura.md) · [Índice](README.md) · Próximo: [Segurança](04-seguranca.md) →
 
-As versões exatas são fixadas no início do M0 (última estável). Abaixo, a escolha e o motivo.
+Abaixo, a escolha e o motivo. As versões fixadas no M0 estão em [Versões fixadas](#versões-fixadas-no-m0); o Renovate propõe as atualizações.
 
 ## App desktop e núcleo (Rust)
 
@@ -88,7 +88,25 @@ Decisão do autor: **as ferramentas de build e teste ficam no WSL Ubuntu**, não
 
 **App Windows:** proposta de compilar no WSL com `cargo-xwin` e executar o `.exe` no Windows pela interoperabilidade do WSL — é assim que se testam os recursos exclusivos do Windows (coletor de WSL, bandeja, autostart, WebView2). O instalador NSIS pode ser gerado no Linux (suporte experimental do Tauri); o MSI exige Windows, então fica a cargo do CI. Ver [Q-35](10-perguntas-em-aberto.md#infraestrutura-e-custos).
 
-**Configurado e verificado em 2026-10-14** (Ubuntu 26.04.1 LTS, WSL2, systemd): Rust 1.99 · Node 24.22 · pnpm 12.11 · Docker 29.9 + Compose 5.6 · WebKitGTK 2.52 · clang 21. Para reproduzir em outra máquina, use os scripts de [`scripts/wsl/`](../scripts/wsl/README.md). Ferramentas específicas do M0 (Trunk, `tauri-cli`, `cargo-xwin`) serão instaladas com versões fixadas quando o workspace for criado.
+**Configurado e verificado em 2026-10-14** (Ubuntu 26.04.1 LTS, WSL2, systemd): Rust 1.99 · Node 24.22 · pnpm 12.11 · Docker 29.9 + Compose 5.6 · WebKitGTK 2.52 · clang 21. Para reproduzir em outra máquina, use os scripts de [`scripts/wsl/`](../scripts/wsl/README.md). As ferramentas do M0 (Trunk, `tauri-cli`, `cargo-xwin`, `cargo-deny`, `just`) são instaladas pelo `scripts/wsl/setup-user.sh` nas versões abaixo.
+
+## Versões fixadas no M0
+
+Fixadas em 2026-10-17. A fonte da verdade é o `Cargo.lock`, o `rust-toolchain.toml`, o `apps/ui/Trunk.toml` e os workflows; esta tabela só resume.
+
+| Peça | Versão | Onde fica |
+|---|---|---|
+| Rust | 1.99.0 (edition 2024) | `rust-toolchain.toml` |
+| Tauri / tauri-build | 2.12.4 / 2.7.3 | `Cargo.toml` |
+| Plugins Tauri | single-instance 2.5.4 · autostart 2.7.0 · window-state 2.5.0 | `Cargo.toml` |
+| Leptos (CSR) | 0.8.22 | `Cargo.toml` |
+| wasm-bindgen | 0.2.129 (crate e CLI precisam bater) | `Cargo.toml`, `apps/ui/Trunk.toml` |
+| Trunk · wasm-opt · Tailwind CLI | 0.21.14 · version_133 · 4.3.3 | `scripts/wsl/setup-user.sh`, `apps/ui/Trunk.toml` |
+| Axum · Tokio · tower-http | 0.8.9 · 1.53.3 · 0.7.1 | `Cargo.toml` |
+| Lucide · Inter · JetBrains Mono | lucide-static 1.57.0 · fontsource 5.3.0 (embutidos) | `apps/ui/src/components/icon.rs`, `apps/ui/assets/fonts/` |
+| tauri-cli · cargo-xwin · cargo-deny · just | 2.12.3 · 0.23.1 · 0.20.2 · 1.58.0 | `scripts/wsl/setup-user.sh`, workflows |
+| osv-scanner | 2.7.0 | `.github/workflows/audit.yml` |
+| release-please-action · tauri-action | v5.0.0 · v0.6.2 | `.github/workflows/release*.yml` |
 
 ## Site
 

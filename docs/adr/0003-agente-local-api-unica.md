@@ -1,6 +1,6 @@
 # ADR-0003 · Núcleo local com uma API única para desktop, navegador e celular
 
-- **Status:** Proposto
+- **Status:** Aceito (2026-10-17, no fechamento do M0)
 - **Data:** 2026-10-14
 - **Relacionados:** [Arquitetura](../02-arquitetura.md) · [APIs](../06-api-e-protocolos.md#api-do-agente-local) · [Acesso remoto](../modulos/acesso-remoto.md) · [Segurança §8](../04-seguranca.md#8-api-local)
 

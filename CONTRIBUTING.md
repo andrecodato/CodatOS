@@ -2,15 +2,26 @@
 
 Que bom que você quer ajudar! Este guia explica como o projeto é organizado e como propor mudanças.
 
-## Fase atual: planejamento
+## Fase atual: M0 concluído, M1 a caminho
 
-O código ainda não começou. As contribuições mais valiosas agora são:
+A fundação já existe: núcleo local (Axum), janela e bandeja (Tauri 2) e UI em Leptos. As contribuições mais valiosas agora são:
 
 - **Revisar a documentação** em [`docs/`](docs/README.md) e apontar lacunas, riscos ou exageros.
 - **Opinar nas [perguntas em aberto](docs/10-perguntas-em-aberto.md)**.
 - **Sugerir ideias** por issue (modelo "Ideia / recurso").
+- **Testar o app** no seu sistema e abrir issue com o que quebrar.
 
 O ambiente de desenvolvimento roda no **WSL Ubuntu** (Rust, Node/pnpm e Docker ficam lá, não no Windows). Para montar o seu, use os scripts de [`scripts/wsl/`](scripts/wsl/README.md); detalhes em [Stack → Ambiente de desenvolvimento](docs/03-stack.md#ambiente-de-desenvolvimento).
+
+Comandos do dia a dia (precisam do [`just`](https://github.com/casey/just)):
+
+| Comando | O que faz |
+|---|---|
+| `just dev` | Abre o app em modo dev, com recarga da UI |
+| `just check` | O que a CI roda: formatação, clippy sem warnings e testes |
+| `just build-win` | Gera o `.exe` do Windows a partir do WSL |
+| `just build-linux` | Gera o build do Linux |
+| `just measure-idle` | No Windows (PowerShell), mede RAM e CPU do app parado ([resultados](docs/benchmarks/m0.md)) |
 
 ## Onde as coisas ficam
 
@@ -18,7 +29,7 @@ O ambiente de desenvolvimento roda no **WSL Ubuntu** (Rust, Node/pnpm e Docker f
 |---|---|
 | `docs/` | Fonte da verdade: requisitos, arquitetura, ADRs |
 | `vault/` | Vault do Obsidian com notas de trabalho (conceitos, pesquisa, diário) |
-| `apps/`, `crates/` | Código (a partir do M0) — ver [estrutura planejada](docs/02-arquitetura.md#estrutura-do-monorepo-planejada) |
+| `apps/`, `crates/` | Código — ver [estrutura do monorepo](docs/02-arquitetura.md#estrutura-do-monorepo-planejada) |
 
 ## Idioma
 
