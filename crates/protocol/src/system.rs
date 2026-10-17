@@ -120,3 +120,38 @@ pub enum SensorSource {
     /// Sensores do próprio SO (hwmon no Linux, SMC no macOS).
     Os,
 }
+
+/// Distros WSL (RF-SYS-020 a 022). Só existe no Windows.
+pub const TOPIC_WSL: &str = "wsl.distros";
+
+/// Amostra de `wsl.distros`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WslStatus {
+    pub distros: Vec<WslDistro>,
+    /// Memória e CPU da VM do WSL 2 (processo `vmmemWSL` no host), quando ela está ligada.
+    pub vm: Option<WslVm>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WslDistro {
+    pub name: String,
+    /// 1 ou 2.
+    pub version: u8,
+    pub default: bool,
+    pub running: bool,
+    /// Tamanho do `ext4.vhdx` no host (WSL 2), com a distro ligada ou não.
+    pub vhdx_bytes: Option<u64>,
+    /// Uso de `/` dentro da distro; só para distros em execução (RF-SYS-024).
+    pub disk_used: Option<u64>,
+    pub disk_total: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WslVm {
+    pub memory: u64,
+    /// % do total da máquina (0–100), como no Gerenciador de Tarefas.
+    pub cpu: f32,
+}
