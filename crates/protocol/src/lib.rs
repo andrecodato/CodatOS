@@ -7,4 +7,5 @@ pub mod dashboard;
 pub mod projects;
 pub mod rpc;
 pub mod system;
+pub mod vault;
 pub mod weather;
