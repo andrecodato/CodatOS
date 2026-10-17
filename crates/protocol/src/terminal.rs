@@ -23,8 +23,6 @@ pub mod errors {
     pub const PASSWORD_REQUIRED: &str = "ssh_password_required";
     /// Host sem identidade e sem `username` no pedido.
     pub const USERNAME_REQUIRED: &str = "ssh_username_required";
-    /// Jump hosts chegam na próxima PR do M2.
-    pub const JUMP_UNSUPPORTED: &str = "ssh_jump_unsupported";
 }
 
 /// Parâmetros de `terminal.open`.
@@ -63,7 +61,8 @@ pub enum TerminalTarget {
     Wsl { distro: String },
     /// Shell dentro de um container (`docker exec -it`).
     Docker { container: String },
-    /// Sessão SSH com um host cadastrado, com a identidade e a herança dos grupos.
+    /// Sessão SSH com um host cadastrado, com a identidade, a herança dos grupos e os jump
+    /// hosts.
     Ssh {
         host_id: String,
         /// Usuário só desta conexão; sem ele, o da identidade.
