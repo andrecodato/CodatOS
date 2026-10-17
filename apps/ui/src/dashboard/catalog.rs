@@ -39,6 +39,42 @@ pub const KINDS: &[Kind] = &[
         render: widgets::usage::render,
     },
     Kind {
+        id: "system.history",
+        name: "Histórico",
+        description: "CPU e memória na última hora.",
+        icon: Icon::Activity,
+        size: (6, 3),
+        min: (4, 3),
+        render: widgets::history::render,
+    },
+    Kind {
+        id: "disks",
+        name: "Discos",
+        description: "Espaço livre em cada volume.",
+        icon: Icon::HardDrive,
+        size: (4, 3),
+        min: (3, 2),
+        render: widgets::disks::render,
+    },
+    Kind {
+        id: "network",
+        name: "Rede",
+        description: "Download e upload agora, por interface.",
+        icon: Icon::ArrowDownUp,
+        size: (4, 2),
+        min: (3, 2),
+        render: widgets::network::render,
+    },
+    Kind {
+        id: "system.gpu",
+        name: "GPU",
+        description: "Uso, memória e temperatura da GPU NVIDIA.",
+        icon: Icon::Monitor,
+        size: (4, 2),
+        min: (3, 2),
+        render: widgets::gpu::render,
+    },
+    Kind {
         id: "clock",
         name: "Relógio",
         description: "Hora e data deste PC.",
@@ -102,6 +138,7 @@ mod tests {
         assert_eq!(search("relogio")[0].id, "clock");
         assert_eq!(search("MEMÓRIA")[0].id, "system.usage");
         assert_eq!(search("").len(), KINDS.len());
+        assert_eq!(search("upload")[0].id, "network");
         assert!(search("xyz").is_empty());
     }
 }

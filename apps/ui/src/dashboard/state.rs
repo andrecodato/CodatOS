@@ -7,6 +7,9 @@ use serde::de::DeserializeOwned;
 use crate::api::{CoreStatus, Sample};
 use crate::components::icon::{Icon, Svg};
 
+/// Código de erro dos coletores para "não há essa fonte de dados aqui".
+const UNAVAILABLE: &str = "unavailable";
+
 /// Dado por cada widget da grade: incrementar remonta o conteúdo, refazendo as assinaturas.
 #[derive(Debug, Clone, Copy)]
 pub struct Retry(pub RwSignal<u32>);
@@ -27,6 +30,11 @@ where
     let status = use_context::<ReadSignal<CoreStatus>>();
     (move || match sample.get() {
         None => view! { <Skeleton /> }.into_any(),
+        // Fonte que não existe nesta máquina (sem GPU NVIDIA, sem sensor): não é falha.
+        Some(Err(problem)) if problem.code == UNAVAILABLE => view! {
+            <Unavailable title=problem.title />
+        }
+        .into_any(),
         Some(Err(problem)) => view! {
             <ErrorState title=problem.title detail=problem.detail.unwrap_or_default() />
         }
@@ -93,5 +101,15 @@ fn Stale() -> impl IntoView {
         <span class="absolute top-0 right-0 rounded bg-warning/15 px-1.5 py-0.5 text-[11px] text-warning">
             "Desatualizado"
         </span>
+    }
+}
+
+#[component]
+fn Unavailable(title: String) -> impl IntoView {
+    view! {
+        <div class="flex h-full flex-col items-start justify-center gap-1 text-sm">
+            <p class="font-medium text-muted">"Indisponível neste PC"</p>
+            <p class="text-xs text-subtle">{title}</p>
+        </div>
     }
 }
