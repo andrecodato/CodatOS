@@ -6,7 +6,7 @@ spec: docs/modulos/projetos.md
 ---
 # Projetos
 
-"Em que eu estava trabalhando?" — repositórios descobertos em pastas raiz (Windows e dentro do WSL) + recentes do VS Code/Cursor/JetBrains, com branch, alterações pendentes e ações rápidas.
+"Em que eu estava trabalhando?" — repositórios descobertos em pastas raiz (Windows e dentro do WSL) + recentes do VS Code/JetBrains, com branch, alterações pendentes e ações rápidas.
 
 **Conceitos:** [[Coletor]] · [[Local-first]] (caminhos são por dispositivo)
 
