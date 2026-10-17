@@ -18,7 +18,9 @@ use std::time::{Duration, Instant};
 
 use codatos_core::{CollectError, CollectFuture, Collector, Intervals};
 
-use crate::DeviceSettings;
+use codatos_protocol::dashboard::SettingScope;
+
+use crate::SettingsReader;
 use codatos_protocol::projects::{Project, ProjectsConfig, SETTING_PROJECTS, TOPIC_PROJECTS};
 use futures_util::StreamExt as _;
 
@@ -32,7 +34,7 @@ const MAX_PROJECTS: usize = 300;
 /// `projects`. Lê a configuração em `settings` (escopo `device`) a cada coleta.
 #[derive(Default)]
 pub struct ProjectsCollector {
-    settings: Option<DeviceSettings>,
+    settings: Option<SettingsReader>,
     cache: Arc<Mutex<Option<ScanCache>>>,
 }
 
@@ -51,7 +53,7 @@ impl std::fmt::Debug for ProjectsCollector {
 }
 
 impl ProjectsCollector {
-    pub fn new(settings: Option<DeviceSettings>) -> Self {
+    pub fn new(settings: Option<SettingsReader>) -> Self {
         Self {
             settings,
             cache: Arc::default(),
@@ -62,7 +64,7 @@ impl ProjectsCollector {
         let Some(settings) = &self.settings else {
             return ProjectsConfig::default();
         };
-        settings(SETTING_PROJECTS)
+        settings(SETTING_PROJECTS, SettingScope::Device)
             .await
             .and_then(|v| serde_json::from_value(v).ok())
             .unwrap_or_default()
