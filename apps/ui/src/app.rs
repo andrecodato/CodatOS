@@ -4,11 +4,14 @@ use leptos::prelude::*;
 
 use crate::api::{self, CoreStatus};
 use crate::components::{sidebar::Sidebar, titlebar::Titlebar, topbar::Topbar};
+use crate::dashboard::Dashboard;
 
 #[component]
 pub fn App() -> impl IntoView {
     let (status, set_status) = signal(CoreStatus::Connecting);
     api::connect(set_status);
+    // Os widgets mostram "desatualizado" quando o núcleo cai.
+    provide_context(status);
 
     view! {
         <div class="flex h-screen flex-col overflow-hidden bg-base font-sans text-fg">
@@ -20,12 +23,7 @@ pub fn App() -> impl IntoView {
                     <main class="flex-1 overflow-auto p-6">
                         <h1 class="text-[26px] leading-8 font-semibold">"Olá 👋"</h1>
                         <p class="mt-1 text-sm text-muted">"Seu universo, em um só lugar."</p>
-                        <section class="mt-6 rounded-lg border border-line bg-card p-5 shadow-card">
-                            <h2 class="text-sm font-semibold">"Dashboard"</h2>
-                            <p class="mt-2 text-sm text-muted">
-                                "Os widgets de sistema, clima e projetos chegam no M1."
-                            </p>
-                        </section>
+                        <Dashboard status=status />
                     </main>
                 </div>
             </div>
