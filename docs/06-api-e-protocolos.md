@@ -65,7 +65,7 @@ Regras das assinaturas:
 | Sessão | `session.hello` (versão, capacidades), `system.ping`, `vault.status`, `vault.unlock`, `vault.lock` |
 | Dashboards e preferências | `dashboards.list`, `dashboards.get`, `dashboards.save` (troca todos os widgets), `dashboards.delete`, `settings.get`, `settings.set` (`value: null` apaga; `scope`: `global`/`device`) |
 | Dashboard | `dashboards.list/get/save`, `widgets.catalog` |
-| Assinaturas | `subscribe(topic)`, `unsubscribe(sub)` — tópicos: `system.metrics`, `system.info`, `system.gpu`, `system.cpuSensors`, `disks`, `wsl.distros` (só Windows), `docker.containers`, `projects`, `weather`, `calendar.week`, `tasks.summary`, `finance.summary`, `notifications` |
+| Assinaturas | `subscribe(topic)`, `unsubscribe(sub)` — tópicos: `system.metrics`, `system.info`, `system.gpu`, `system.cpuSensors`, `disks`, `wsl.distros` (só Windows), `docker.containers`, `projects` (configurado pela preferência `projects`, escopo `device`), `weather`, `calendar.week`, `tasks.summary`, `finance.summary`, `notifications` |
 | Sistema | `processes.list`, `processes.kill` |
 | WSL | `wsl.list`, `wsl.start`, `wsl.terminate`, `wsl.shutdown`, `wsl.setDefault` |
 | Docker | `docker.engines`, `docker.containers.list`, `docker.container.start/stop/restart`, `docker.logs.follow` |

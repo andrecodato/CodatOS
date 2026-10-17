@@ -646,6 +646,7 @@ version = "0.0.0"
 dependencies = [
  "codatos-core",
  "codatos-protocol",
+ "futures-util",
  "nvml-wrapper",
  "serde",
  "serde_json",
