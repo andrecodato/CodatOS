@@ -13,6 +13,9 @@ pub const METHOD_DASHBOARDS_DELETE: &str = "dashboards.delete";
 pub const METHOD_SETTINGS_GET: &str = "settings.get";
 pub const METHOD_SETTINGS_SET: &str = "settings.set";
 
+/// Preferência `global` com o nome da saudação (RF-DASH-008).
+pub const SETTING_PROFILE_NAME: &str = "profile.name";
+
 /// Item de `dashboards.list`, em ordem de `position`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
