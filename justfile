@@ -30,3 +30,8 @@ build-win:
 # App Linux (.deb + AppImage)
 build-linux:
     cd apps/desktop && cargo tauri build --bundles deb,appimage
+
+# Mede RAM/CPU em repouso do app Windows (docs/benchmarks/m0.md). Rodar no WSL após `just build-win`.
+# Repassa parâmetros ao script, ex.: `just measure-idle -Autostart -Json`
+measure-idle *args:
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w scripts/measure-idle.ps1)" {{args}}

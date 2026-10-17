@@ -44,6 +44,14 @@
 
 Registradas como ADRs (Architecture Decision Records) em [adr/](adr/README.md).
 
+## Medições
+
+Benchmarks de cada marco, com método e números, em [benchmarks/](benchmarks/):
+
+| Marco | Documento |
+|---|---|
+| M0 | [RAM e CPU em repouso](benchmarks/m0.md) |
+
 ## Convenções
 
 - **IDs**: `RF-<MÓDULO>-NNN` (funcional), `RNF-<ÁREA>-NN` (não funcional), `R-NN` (restrição inviolável), `Q-NN` (pergunta em aberto), `ADR-NNNN` (decisão).
