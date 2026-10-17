@@ -100,6 +100,18 @@ async fn open_store(app: &AppHandle) -> Option<codatos_store::Store> {
     }
 }
 
+/// Cofre local (header no banco, chave no keychain no modo sessão). Sem ele, as conexões
+/// não guardam segredos.
+async fn open_vault(store: codatos_store::Store) -> Option<codatos_store::Vault> {
+    match codatos_store::Vault::open(store, codatos_store::os_keychain()).await {
+        Ok(vault) => Some(vault),
+        Err(error) => {
+            tracing::error!(%error, "cofre local não abriu");
+            None
+        }
+    }
+}
+
 /// Leitura de preferências do banco, para os coletores (projetos, cidade do clima).
 fn settings_reader(store: codatos_store::Store) -> codatos_collectors::SettingsReader {
     std::sync::Arc::new(move |key, scope| {
@@ -113,6 +125,10 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(delay).await;
         let store = open_store(&app).await;
+        let vault = match &store {
+            Some(store) => open_vault(store.clone()).await,
+            None => None,
+        };
         let ui_dir = {
             let app = app.clone();
             tauri::async_runtime::spawn_blocking(move || ui_assets::extract(&app))
@@ -129,9 +145,16 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
                 .map(codatos_store::methods)
                 .unwrap_or_default()
                 .into_iter()
+                .chain(vault.iter().flat_map(codatos_store::vault_methods))
                 .chain(codatos_collectors::methods())
                 .collect(),
-            collectors: codatos_collectors::all(store.map(settings_reader)),
+            collectors: codatos_collectors::all(store.map(settings_reader))
+                .into_iter()
+                .chain(vault.map(|v| {
+                    std::sync::Arc::new(codatos_store::VaultCollector(v))
+                        as std::sync::Arc<dyn codatos_core::Collector>
+                }))
+                .collect(),
         };
         match codatos_core::start(config).await {
             // O servidor para quando o processo termina.

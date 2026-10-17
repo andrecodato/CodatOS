@@ -1,11 +1,15 @@
 //! Banco local do CodatOS: um arquivo SQLite por perfil (`docs/05-modelo-de-dados.md`).
 //!
-//! No M1 guarda preferências e dashboards, sem cifra; o SQLCipher entra com o cofre (M3).
-//! [`methods`] expõe o banco à UI como métodos JSON-RPC.
+//! Guarda preferências, dashboards e o header do [`Vault`]. O arquivo não é cifrado (Q-37):
+//! os segredos vão cifrados pelo cofre. [`methods`] e [`vault_methods`] expõem o banco à UI
+//! como métodos JSON-RPC.
 
 mod dashboards;
+mod keychain;
 mod methods;
 mod settings;
+mod vault;
+mod vault_rpc;
 
 use std::path::Path;
 use std::str::FromStr;
@@ -13,7 +17,10 @@ use std::str::FromStr;
 use sqlx::SqlitePool;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
 
+pub use keychain::{Keychain, KeychainError, os_keychain};
 pub use methods::methods;
+pub use vault::{Vault, VaultError};
+pub use vault_rpc::{VaultCollector, vault_methods};
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!();
 
