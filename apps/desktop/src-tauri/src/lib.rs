@@ -4,26 +4,38 @@
 mod autostart;
 mod settings;
 mod tray;
+mod ui_assets;
 mod window;
 
 use std::sync::{Arc, OnceLock};
 
-use codatos_core::{DEFAULT_PORT, ServerConfig};
+use codatos_core::{DEFAULT_PORT, RunningServer, ServerConfig};
 use tauri::{AppHandle, Manager, RunEvent};
 
-/// Token do app, preenchido quando o núcleo termina de subir.
+/// API local, preenchida quando o núcleo termina de subir. Fica guardada aqui até o app sair.
 #[derive(Default, Clone)]
-struct CoreToken(Arc<OnceLock<String>>);
+pub(crate) struct Core(Arc<OnceLock<RunningServer>>);
+
+impl Core {
+    /// Endereço de uso único para abrir a UI no navegador (tray "Abrir no navegador").
+    pub(crate) fn browser_url(&self) -> Option<String> {
+        let server = self.0.get()?;
+        Some(format!(
+            "http://127.0.0.1:{}/?token={}",
+            server.local_addr().port(),
+            server.issue_browser_token()
+        ))
+    }
+}
 
 /// Entrega à janela o token do app (IPC `get_session_token`, ver `codatos-protocol`).
 /// Só a janela do próprio app tem essa permissão (`capabilities/default.json`).
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)] // o Tauri entrega `State` por valor
-fn get_session_token(token: tauri::State<'_, CoreToken>) -> Result<String, String> {
-    token
-        .0
+fn get_session_token(core: tauri::State<'_, Core>) -> Result<String, String> {
+    core.0
         .get()
-        .cloned()
+        .map(|server| server.app_token().to_owned())
         .ok_or_else(|| "núcleo iniciando".to_owned())
 }
 
@@ -44,7 +56,7 @@ pub fn run() {
         .plugin(window::state_plugin())
         // Links dos widgets abrem no navegador padrão (só http/https, ver capabilities).
         .plugin(tauri_plugin_opener::init())
-        .manage(CoreToken::default())
+        .manage(Core::default())
         .invoke_handler(tauri::generate_handler![get_session_token])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -101,9 +113,16 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(delay).await;
         let store = open_store(&app).await;
+        let ui_dir = {
+            let app = app.clone();
+            tauri::async_runtime::spawn_blocking(move || ui_assets::extract(&app))
+                .await
+                .ok()
+                .flatten()
+        };
         let config = ServerConfig {
             port: DEFAULT_PORT,
-            ui_dir: None,
+            ui_dir,
             extra_origins: dev_origins(),
             methods: store
                 .as_ref()
@@ -115,14 +134,9 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
             collectors: codatos_collectors::all(store.map(settings_reader)),
         };
         match codatos_core::start(config).await {
+            // O servidor para quando o processo termina.
             Ok(server) => {
-                let _ = app
-                    .state::<CoreToken>()
-                    .0
-                    .set(server.app_token().to_owned());
-                // O servidor para quando o processo termina.
-                std::future::pending::<()>().await;
-                drop(server);
+                let _ = app.state::<Core>().0.set(server);
             }
             Err(error) => tracing::error!(%error, "núcleo não subiu"),
         }
