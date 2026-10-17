@@ -100,6 +100,8 @@ Implementado em `codatos_protocol::channel` e no núcleo (`ChannelMethod`):
 - O núcleo manda até 256 KiB de dados por canal sem confirmação, em frames de até 64 KiB. Depois disso, espera os `ack`s. Um `ack` não abre a janela além do tamanho inicial.
 - `fechar` vale nos dois sentidos. Frames de canais desconhecidos ou já fechados são ignorados. Fechar o WebSocket fecha todos os canais da conexão.
 
+Métodos que abrem canais: `terminal.open` ([terminais locais, WSL e Docker](modulos/conexoes.md#decisões-técnicas-do-m2)).
+
 ## API da nuvem (REST)
 
 Base: `https://api.codatos.dev/v1`. Autenticação: `Authorization: Bearer <access token>` (15 min) + refresh token rotativo.
