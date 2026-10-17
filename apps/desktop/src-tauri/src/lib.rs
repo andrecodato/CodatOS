@@ -86,19 +86,34 @@ async fn open_store(app: &AppHandle) -> Option<codatos_store::Store> {
     }
 }
 
+/// Preferências `device` do banco, para os coletores (configuração dos projetos).
+fn device_settings(store: codatos_store::Store) -> codatos_collectors::DeviceSettings {
+    std::sync::Arc::new(move |key| {
+        let store = store.clone();
+        Box::pin(async move {
+            store
+                .setting(key, codatos_protocol::dashboard::SettingScope::Device)
+                .await
+                .ok()
+                .flatten()
+        })
+    })
+}
+
 /// Sobe a API local depois do atraso de autostart e a mantém viva até o app sair.
 fn start_core(app: AppHandle, delay: std::time::Duration) {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(delay).await;
+        let store = open_store(&app).await;
         let config = ServerConfig {
             port: DEFAULT_PORT,
             ui_dir: None,
             extra_origins: dev_origins(),
-            collectors: codatos_collectors::all(),
-            methods: open_store(&app)
-                .await
-                .map(|store| codatos_store::methods(&store))
+            methods: store
+                .as_ref()
+                .map(codatos_store::methods)
                 .unwrap_or_default(),
+            collectors: codatos_collectors::all(store.map(device_settings)),
         };
         match codatos_core::start(config).await {
             Ok(server) => {
