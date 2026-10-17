@@ -1,6 +1,6 @@
 # 09 · Roadmap
 
-> **Status:** Rascunho · **Versão:** 0.1 · **Atualizado:** 2026-10-14
+> **Status:** Rascunho · **Versão:** 0.1 · **Atualizado:** 2026-10-17
 > ← [Site](08-site.md) · [Índice](README.md) · Próximo: [Perguntas em aberto](10-perguntas-em-aberto.md) →
 
 A ordem prioriza **usar o app no dia a dia o quanto antes** (dashboard local), depois o que substitui ferramentas pagas (conexões), e só então a nuvem. Sem datas: cada marco termina quando seus critérios de saída são atendidos.
@@ -32,7 +32,7 @@ flowchart LR
 - Coletores: CPU/RAM/GPU (NVML), discos, rede, WSL (estado, tamanho, ações), Docker (host + WSL, deduplicado), projetos (raízes + VS Code/JetBrains).
 - Clima (Open-Meteo). Grade de widgets com modo edição. Onboarding. Acesso pelo navegador local com token.
 - **Saída**: o autor usa o dashboard diariamente no Windows; RNF-DES-01/02 atendidos.
-- **Situação (2026-10-17)**: em andamento. Plano em 15 PRs: [plano do M1](https://claude.ai/code/artifact/bccd5d5d-70fb-446f-badd-91b08dd9bbfb). Q-14, Q-15, Q-25 e Q-30 decididas.
+- **Situação (2026-10-17)**: código completo nas PRs #13 a #30 ([plano do M1](https://claude.ai/code/artifact/bccd5d5d-70fb-446f-badd-91b08dd9bbfb)); Q-14, Q-15, Q-25 e Q-30 decididas. Falta medir o RNF-DES-01/02 no Windows ([medições do M1](benchmarks/m1.md)) e o autor passar a usar o dashboard no dia a dia.
 
 ## M2 · Conexões
 
@@ -71,7 +71,7 @@ flowchart LR
 ## Trilha do site
 
 - **S0** ✅: [protótipo do hero com o mosaico](../apps/site/prototypes/mosaico.html) (HTML puro, para validar o visual).
-- **S1** (junto com M1): landing "em breve" com mosaico, lista de espera opcional e link para o GitHub.
+- **S1** (junto com M1): landing "em breve" com mosaico, lista de espera opcional e link para o GitHub. Feita em `apps/site` (Astro); a lista de espera ficou para depois e a publicação espera o domínio ([Q-01](10-perguntas-em-aberto.md)).
 - **S2** (junto com 1.0): site completo com downloads, preços, segurança, changelog e docs.
 
 ## Riscos

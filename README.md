@@ -78,10 +78,11 @@ Prefere não depender de ninguém? A ideia é que você possa **hospedar seu pr�
 
 ## 🧭 Status do projeto
 
-O CodatOS está **em desenvolvimento**. A fundação (M0) está pronta: o app abre com o sistema, mora na bandeja e usa cerca de 30 MB de RAM parado ([medição](docs/benchmarks/m0.md)). Falta só assinar o instalador do Windows.
+O CodatOS está **em desenvolvimento**. A fundação (M0) está pronta: o app abre com o sistema, mora na bandeja e usa cerca de 30 MB de RAM parado ([medição](docs/benchmarks/m0.md)). Falta só assinar o instalador do Windows. O dashboard local (M1) está pronto no código e sendo testado no Windows.
 
 - [x] Visão, requisitos e arquitetura
 - [x] Protótipo do site com o mosaico interativo
+- [x] Site "em breve" com o mosaico (ainda não publicado)
 - [x] **M0** · Fundação — o app abre com o sistema e mora na bandeja
 - [ ] **M1** · Dashboard local — PC, discos, WSL, Docker, projetos e clima
 - [ ] **M2** · Conexões — SSH, SFTP, chaves e túneis
