@@ -84,3 +84,39 @@ pub enum DiskKind {
     Hdd,
     Unknown,
 }
+
+/// GPUs NVIDIA via NVML (RF-SYS-003). Sem driver NVIDIA, o tópico responde `unavailable`.
+pub const TOPIC_GPU: &str = "system.gpu";
+/// Temperatura e potência da CPU (Q-13). No Windows vêm do LibreHardwareMonitor.
+pub const TOPIC_CPU_SENSORS: &str = "system.cpuSensors";
+
+/// Item da amostra de `system.gpu`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Gpu {
+    pub name: String,
+    /// Uso em % (0–100).
+    pub usage: f32,
+    pub memory_used: u64,
+    pub memory_total: u64,
+    pub temperature_c: Option<f32>,
+    pub power_w: Option<f32>,
+}
+
+/// Amostra de `system.cpuSensors`. Valores ausentes aparecem como "indisponível".
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CpuSensors {
+    pub temperature_c: Option<f32>,
+    pub power_w: Option<f32>,
+    pub source: SensorSource,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SensorSource {
+    /// Servidor web do LibreHardwareMonitor (`127.0.0.1:8085`).
+    LibreHardwareMonitor,
+    /// Sensores do próprio SO (hwmon no Linux, SMC no macOS).
+    Os,
+}
