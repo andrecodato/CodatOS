@@ -1,6 +1,6 @@
 # Módulo · Conexões
 
-> **Prefixo:** `RF-CON` · **Marco principal:** M2 · **Status:** Rascunho
+> **Prefixo:** `RF-CON` · **Marco principal:** M2 · **Status:** Em implementação ([plano do M2](https://claude.ai/code/artifact/4c65cf33-a212-49c2-b7ea-08c00b42a1b8))
 > ↑ [Requisitos](../01-requisitos.md) · Relacionados: [Segurança](../04-seguranca.md) · [Contas e sync](contas-e-sync.md) · [Multitenancy](multitenancy.md) · [Sistema](sistema.md) · [APIs → canais binários](../06-api-e-protocolos.md#canais-binários-terminal-e-sftp)
 
 ## Objetivo
@@ -101,3 +101,15 @@ Keepalive, codificação, variáveis de ambiente, comando inicial, tema do termi
 - Quais protocolos além de SSH/SFTP? → [Q-10](../10-perguntas-em-aberto.md#conexões)
 - Histórico/gravação de sessão? → [Q-11](../10-perguntas-em-aberto.md#conexões)
 - Snippets e túneis no MVP? → [Q-12](../10-perguntas-em-aberto.md#conexões)
+- Desbloqueio do cofre sem conta? → [Q-36](../10-perguntas-em-aberto.md#conexões)
+- Banco inteiro cifrado no M2? → [Q-37](../10-perguntas-em-aberto.md#conexões)
+
+As três primeiras seguem a proposta padrão no M2.
+
+## Decisões técnicas do M2
+
+- **SSH/SFTP**: `russh` e `russh-sftp` com o backend criptográfico `ring` (compila no build do Windows pelo WSL; o `aws-lc-rs` pede CMake e NASM).
+- **Terminal**: xterm.js empacotado na UI (sem CDN), ligado ao Leptos por `wasm-bindgen`; dados nos [canais binários](../06-api-e-protocolos.md#canais-binários-terminal-e-sftp) do mesmo WebSocket `/rpc`.
+- **Terminais locais**: `portable-pty` (ConPTY no Windows); WSL por `wsl.exe -d <distro>` e Docker por `docker exec -it`.
+- **Importação**: só `~/.ssh/config` no M2; PuTTY, MobaXterm e Termius depois.
+- **Status online**: verificação TCP só enquanto a lista de hosts estiver na tela, para o repouso continuar perto do M1.

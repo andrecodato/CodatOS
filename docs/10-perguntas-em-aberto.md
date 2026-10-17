@@ -42,9 +42,11 @@ Cada pergunta tem uma **proposta padrão** — se não houver resposta, seguimos
 
 | ID | Pergunta | Proposta padrão | Impacto |
 |---|---|---|---|
-| Q-10 | O "etc." de SSH/SFTP inclui quais protocolos: RDP, VNC, Telnet, Serial, FTP/FTPS, Mosh, Kubernetes, bancos de dados? | SSH, SFTP, túneis, terminais locais/WSL/Docker na 1.0; RDP via cliente nativo depois | 🟡 [Conexões](modulos/conexoes.md) |
-| Q-11 | Quer histórico/gravação de sessões de terminal? (Somente local e cifrado, por causa da R-01.) | Não na 1.0 | 🟢 |
-| Q-12 | Snippets e port forwarding já no M2? | Sim (você parece usar homelab/VPS) | 🟢 |
+| Q-10 | O "etc." de SSH/SFTP inclui quais protocolos: RDP, VNC, Telnet, Serial, FTP/FTPS, Mosh, Kubernetes, bancos de dados? ▶ **Seguindo a proposta padrão no M2** (2026-10-17). | SSH, SFTP, túneis, terminais locais/WSL/Docker na 1.0; RDP via cliente nativo depois | 🟡 [Conexões](modulos/conexoes.md) |
+| Q-11 | Quer histórico/gravação de sessões de terminal? (Somente local e cifrado, por causa da R-01.) ▶ **Seguindo a proposta padrão no M2** (2026-10-17). | Não na 1.0 | 🟢 |
+| Q-12 | Snippets e port forwarding já no M2? ▶ **Seguindo a proposta padrão no M2** (2026-10-17). | Sim (você parece usar homelab/VPS) | 🟢 |
+| Q-36 | Como o cofre local desbloqueia sem conta? | Na primeira vez o usuário escolhe: **senha do cofre** (Argon2id, sugerida) ou **só a sessão do Windows** (chave no Gerenciador de Credenciais). Windows Hello no fim do M2; PIN depois. | 🟡 [Segurança §7](04-seguranca.md#7-segurança-local) |
+| Q-37 | O banco local inteiro é cifrado (SQLCipher) já no M2? | Não: no M2 só os segredos são cifrados (cofre). SQLCipher vira um spike no fim do M2, porque exige compilar OpenSSL ou libtomcrypt para Windows a partir do WSL. Até lá, nomes de hosts e IPs ficam em claro no SQLite local. | 🟡 [Segurança §7](04-seguranca.md#7-segurança-local) |
 
 ## Sistema
 
