@@ -6,6 +6,7 @@ members = [
   "crates/collectors",
   "crates/core",
   "crates/protocol",
+  "crates/store",
 ]
 
 [workspace.package]
@@ -24,6 +25,7 @@ publish = false
 codatos-collectors = { path = "crates/collectors" }
 codatos-core = { path = "crates/core" }
 codatos-protocol = { path = "crates/protocol" }
+codatos-store = { path = "crates/store" }
 axum = { version = "0.8.9", features = ["ws"] }
 base64 = "0.22.1"
 console_error_panic_hook = "0.1.7"
@@ -35,6 +37,8 @@ nvml-wrapper = "0.13.0"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 sha2 = "0.10.9"
+# Sem SQLCipher no M1: a cifra entra com o cofre (M3).
+sqlx = { version = "0.9.0", default-features = false, features = ["macros", "migrate", "runtime-tokio", "sqlite-bundled"] }
 subtle = "2.6.1"
 sysinfo = { version = "0.39.6", default-features = false, features = ["system", "disk", "network", "component"] }
 tauri = { version = "2.12.4", features = ["tray-icon"] }

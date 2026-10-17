@@ -8,7 +8,7 @@ use codatos_protocol::api::{
     API_VERSION, EVENT_METHOD, EventParams, Hello, SubscribeParams, Subscribed, UnsubscribeParams,
 };
 use codatos_protocol::rpc::{
-    INVALID_PARAMS, INVALID_REQUEST, JSONRPC_VERSION, METHOD_NOT_FOUND, PARSE_ERROR, Request,
+    INVALID_PARAMS, INVALID_REQUEST, Id, JSONRPC_VERSION, METHOD_NOT_FOUND, PARSE_ERROR, Request,
     Response, RpcError,
 };
 use serde::de::DeserializeOwned;
@@ -27,6 +27,8 @@ pub(crate) struct Connection {
     hub: Arc<Hub>,
     out: mpsc::Sender<String>,
     subs: HashMap<String, JoinHandle<()>>,
+    /// Chamadas de métodos em andamento; canceladas se a conexão fechar.
+    calls: Vec<JoinHandle<()>>,
 }
 
 impl Connection {
@@ -35,6 +37,7 @@ impl Connection {
             hub,
             out,
             subs: HashMap::new(),
+            calls: Vec::new(),
         }
     }
 
@@ -58,6 +61,10 @@ impl Connection {
             return Some(invalid(request.id));
         }
 
+        if let Some(method) = self.hub.method(&request.method) {
+            self.spawn_call(method, request.id, request.params.unwrap_or(Value::Null));
+            return None;
+        }
         let result = self.dispatch(&request.method, request.params);
         let id = request.id?;
         Some(match result {
@@ -72,7 +79,12 @@ impl Connection {
             "session.hello" => Ok(to_value(&Hello {
                 version: env!("CARGO_PKG_VERSION").to_owned(),
                 api: API_VERSION,
-                capabilities: self.hub.topics().map(str::to_owned).collect(),
+                capabilities: self
+                    .hub
+                    .topics()
+                    .chain(self.hub.methods())
+                    .map(str::to_owned)
+                    .collect(),
             })),
             "subscribe" => self.subscribe(&parse(params)?),
             "unsubscribe" => {
@@ -86,6 +98,28 @@ impl Connection {
                 format!("Método desconhecido: {method}"),
             )),
         }
+    }
+
+    /// Roda um método registrado numa tarefa; a resposta sai pela fila da conexão.
+    fn spawn_call(
+        &mut self,
+        method: Arc<dyn crate::method::Method>,
+        id: Option<Id>,
+        params: Value,
+    ) {
+        let out = self.out.clone();
+        let task = tokio::spawn(async move {
+            let result = method.call(params).await;
+            let Some(id) = id else { return };
+            let response = match result {
+                Ok(value) => Response::ok(Some(id), value),
+                Err(error) => Response::err(Some(id), error.into_rpc()),
+            };
+            let json = serde_json::to_string(&response).expect("Response sempre serializa");
+            let _ = out.send(json).await;
+        });
+        self.calls.retain(|t| !t.is_finished());
+        self.calls.push(task);
     }
 
     fn subscribe(&mut self, params: &SubscribeParams) -> Result<Value, RpcError> {
@@ -115,7 +149,7 @@ impl Connection {
 
 impl Drop for Connection {
     fn drop(&mut self) {
-        for task in self.subs.values() {
+        for task in self.subs.values().chain(&self.calls) {
             task.abort();
         }
     }
@@ -170,7 +204,7 @@ fn to_value<T: serde::Serialize>(value: &T) -> Value {
     serde_json::to_value(value).expect("tipos do protocolo sempre serializam")
 }
 
-fn invalid(id: Option<codatos_protocol::rpc::Id>) -> Response {
+fn invalid(id: Option<Id>) -> Response {
     Response::err(
         id,
         RpcError::new(
@@ -184,7 +218,7 @@ fn invalid(id: Option<codatos_protocol::rpc::Id>) -> Response {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use codatos_protocol::rpc::{Id, Outcome};
+    use codatos_protocol::rpc::Outcome;
 
     fn handle_text(text: &str) -> Option<Response> {
         let (out, _rx) = mpsc::channel(1);

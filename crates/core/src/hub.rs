@@ -1,4 +1,5 @@
-//! Assinaturas de tópicos: um coletor por tópico, consultado só enquanto houver assinantes.
+//! Registro do que a API oferece além do básico: tópicos (um coletor por tópico, consultado
+//! só enquanto houver assinantes) e métodos.
 //!
 //! Todos os assinantes de um tópico (janela, navegador) dividem a mesma coleta. O intervalo
 //! da coleta é o menor pedido entre eles; quem pediu um intervalo maior recebe menos
@@ -17,6 +18,7 @@ use tokio::sync::watch;
 use tokio::task::JoinHandle;
 
 use crate::collector::Collector;
+use crate::method::Method;
 
 /// Teto do *backoff* depois de falhas seguidas.
 const MAX_BACKOFF: Duration = Duration::from_secs(60);
@@ -27,11 +29,12 @@ pub(crate) type Sample = Arc<Result<Value, Problem>>;
 #[derive(Debug, Default)]
 pub(crate) struct Hub {
     topics: BTreeMap<&'static str, Arc<Topic>>,
+    methods: BTreeMap<&'static str, Arc<dyn Method>>,
     next_id: AtomicU64,
 }
 
 impl Hub {
-    pub(crate) fn new(collectors: &[Arc<dyn Collector>]) -> Self {
+    pub(crate) fn new(collectors: &[Arc<dyn Collector>], methods: &[Arc<dyn Method>]) -> Self {
         let mut topics = BTreeMap::new();
         for collector in collectors {
             let name = collector.topic();
@@ -41,10 +44,29 @@ impl Hub {
             }
             topics.insert(name, Arc::new(Topic::new(Arc::clone(collector))));
         }
+        let mut by_name = BTreeMap::new();
+        for method in methods {
+            let name = method.name();
+            if by_name.contains_key(name) {
+                tracing::warn!(method = name, "método repetido; fica o primeiro");
+                continue;
+            }
+            by_name.insert(name, Arc::clone(method));
+        }
         Self {
             topics,
+            methods: by_name,
             next_id: AtomicU64::new(1),
         }
+    }
+
+    pub(crate) fn method(&self, name: &str) -> Option<Arc<dyn Method>> {
+        self.methods.get(name).cloned()
+    }
+
+    /// Nomes dos métodos registrados, em ordem.
+    pub(crate) fn methods(&self) -> impl Iterator<Item = &'static str> + '_ {
+        self.methods.keys().copied()
     }
 
     /// Nomes dos tópicos disponíveis, em ordem.

@@ -24,6 +24,7 @@ tauri-build.workspace = true
 codatos-collectors.workspace = true
 codatos-core.workspace = true
 codatos-protocol.workspace = true
+codatos-store.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tauri.workspace = true

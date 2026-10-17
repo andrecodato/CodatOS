@@ -74,6 +74,18 @@ pub fn run() {
     });
 }
 
+/// Banco local em `<dados do app>/codatos.db`. Sem ele, o app abre sem dashboards salvos.
+async fn open_store(app: &AppHandle) -> Option<codatos_store::Store> {
+    let path = app.path().app_data_dir().ok()?.join("codatos.db");
+    match codatos_store::Store::open(&path).await {
+        Ok(store) => Some(store),
+        Err(error) => {
+            tracing::error!(%error, path = %path.display(), "banco local não abriu");
+            None
+        }
+    }
+}
+
 /// Sobe a API local depois do atraso de autostart e a mantém viva até o app sair.
 fn start_core(app: AppHandle, delay: std::time::Duration) {
     tauri::async_runtime::spawn(async move {
@@ -83,6 +95,10 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
             ui_dir: None,
             extra_origins: dev_origins(),
             collectors: codatos_collectors::all(),
+            methods: open_store(&app)
+                .await
+                .map(|store| codatos_store::methods(&store))
+                .unwrap_or_default(),
         };
         match codatos_core::start(config).await {
             Ok(server) => {

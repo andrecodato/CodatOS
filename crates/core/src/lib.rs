@@ -5,15 +5,18 @@
 //! (Segurança §8); o WebSocket exige o token do app ou um cookie de sessão.
 //!
 //! Pelo WebSocket, `subscribe`/`unsubscribe` ligam a UI aos [`Collector`]s: cada tópico
-//! empurra notificações `event` enquanto alguém assina.
+//! empurra notificações `event` enquanto alguém assina. Outros módulos acrescentam
+//! métodos JSON-RPC com [`Method`].
 
 mod auth;
 mod collector;
 mod guard;
 mod hub;
+mod method;
 mod rpc;
 mod server;
 
 pub use collector::{CollectError, CollectFuture, Collector, Intervals, MAX_INTERVAL};
+pub use method::{APP_ERROR, Method, MethodError, MethodFuture, params};
 
 pub use server::{DEFAULT_PORT, Error, RunningServer, ServerConfig, start};
