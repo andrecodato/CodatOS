@@ -1,0 +1,25 @@
+[package]
+name = "codatos-connections"
+description = "Conexões do CodatOS: chaves SSH, sessões, SFTP, túneis e terminais"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+codatos-core.workspace = true
+codatos-protocol.workspace = true
+codatos-store.workspace = true
+getrandom = { workspace = true, features = ["sys_rng"] }
+serde_json.workspace = true
+ssh-key.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+zeroize.workspace = true
+
+
+[lints]
+workspace = true

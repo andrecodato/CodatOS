@@ -1,10 +1,10 @@
-//! Tabelas `host_groups`, `hosts` e `identities`, e a herança de configuração dos grupos
+//! Tabelas `host_groups`, `hosts`, `identities` e `ssh_keys`, e a herança de configuração dos grupos
 //! (RF-CON-002).
 
 use std::collections::{HashMap, HashSet};
 
 use codatos_protocol::connections::{
-    Connections, Host, HostDefaults, HostGroup, Identity, Protocol,
+    Connections, Host, HostDefaults, HostGroup, Identity, Protocol, SshKey,
 };
 use serde_json::{Map, Value};
 
@@ -89,11 +89,77 @@ impl Store {
             })
             .collect();
 
+        let keys: Vec<(String, String, String, String, String)> = sqlx::query_as(
+            "SELECT id, name, algorithm, public_key, fingerprint
+             FROM ssh_keys ORDER BY name COLLATE NOCASE, id",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let keys = keys
+            .into_iter()
+            .map(|(id, name, algorithm, public_key, fingerprint)| SshKey {
+                id,
+                name,
+                algorithm,
+                public_key,
+                fingerprint,
+            })
+            .collect();
+
         Ok(Connections {
             groups,
             hosts,
             identities,
+            keys,
         })
+    }
+
+    /// Grava uma chave nova; `private_key_sealed` é o envelope do cofre com a chave
+    /// privada em formato OpenSSH, sem passphrase.
+    pub async fn insert_key(&self, key: &SshKey, private_key_sealed: &str) -> Result<(), Error> {
+        sqlx::query(
+            "INSERT INTO ssh_keys (id, name, algorithm, public_key, fingerprint, private_key_sealed)
+             VALUES (?, ?, ?, ?, ?, ?)",
+        )
+        .bind(&key.id)
+        .bind(&key.name)
+        .bind(&key.algorithm)
+        .bind(&key.public_key)
+        .bind(&key.fingerprint)
+        .bind(private_key_sealed)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn rename_key(&self, id: &str, name: &str) -> Result<bool, Error> {
+        let done = sqlx::query(
+            "UPDATE ssh_keys SET name = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             WHERE id = ?",
+        )
+        .bind(name)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+        Ok(done.rows_affected() > 0)
+    }
+
+    pub async fn delete_key(&self, id: &str) -> Result<bool, Error> {
+        let done = sqlx::query("DELETE FROM ssh_keys WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(done.rows_affected() > 0)
+    }
+
+    /// Envelope da chave privada, para o núcleo decifrar na hora de conectar.
+    pub async fn key_private(&self, id: &str) -> Result<Option<String>, Error> {
+        let row: Option<(String,)> =
+            sqlx::query_as("SELECT private_key_sealed FROM ssh_keys WHERE id = ?")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?;
+        Ok(row.map(|(sealed,)| sealed))
     }
 
     pub async fn save_group(&self, group: &HostGroup) -> Result<(), Error> {
@@ -411,6 +477,7 @@ mod tests {
                 host("solto", None, &json!({"identityId": "i-solto"})),
             ],
             identities: vec![],
+            keys: vec![],
         };
         let web = effective(&all, "web").unwrap();
         assert_eq!(web.identity_id.as_deref(), Some("i-prod"));
@@ -439,6 +506,7 @@ mod tests {
                 host("y", None, &json!({})),
             ],
             identities: vec![],
+            keys: vec![],
         };
         assert!(group_cycle(&all, "a", Some("b")));
         assert!(group_cycle(&all, "a", Some("a")));

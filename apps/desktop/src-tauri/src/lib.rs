@@ -150,7 +150,11 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
                     store
                         .as_ref()
                         .zip(vault.as_ref())
-                        .map(|(s, v)| codatos_store::connection_methods(s, v))
+                        .map(|(s, v)| {
+                            let mut methods = codatos_store::connection_methods(s, v);
+                            methods.extend(codatos_connections::key_methods(s, v));
+                            methods
+                        })
                         .unwrap_or_default(),
                 )
                 .chain(codatos_collectors::methods())
