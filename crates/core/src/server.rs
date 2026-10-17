@@ -29,6 +29,7 @@ use crate::auth::Auth;
 use crate::collector::Collector;
 use crate::guard::{self, Allowed};
 use crate::hub::Hub;
+use crate::method::Method;
 use crate::rpc::Connection;
 
 /// Porta padrão da API local (`docs/06-api-e-protocolos.md`).
@@ -56,6 +57,8 @@ pub struct ServerConfig {
     pub extra_origins: Vec<String>,
     /// Coletores dos tópicos de `subscribe` (um por tópico).
     pub collectors: Vec<Arc<dyn Collector>>,
+    /// Métodos JSON-RPC a mais (preferências, dashboards, ações).
+    pub methods: Vec<Arc<dyn Method>>,
 }
 
 impl Default for ServerConfig {
@@ -65,6 +68,7 @@ impl Default for ServerConfig {
             ui_dir: None,
             extra_origins: Vec::new(),
             collectors: Vec::new(),
+            methods: Vec::new(),
         }
     }
 }
@@ -127,7 +131,7 @@ pub async fn start(config: ServerConfig) -> Result<RunningServer, Error> {
     let csp = csp(config.ui_dir.as_deref());
     let state = AppState {
         auth: Arc::clone(&auth),
-        hub: Arc::new(Hub::new(&config.collectors)),
+        hub: Arc::new(Hub::new(&config.collectors, &config.methods)),
     };
     let app = router(state, allowed, config.ui_dir.as_deref(), &csp);
 

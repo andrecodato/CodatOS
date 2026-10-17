@@ -1,0 +1,25 @@
+[package]
+name = "codatos-store"
+description = "Banco local do CodatOS (SQLite) e os métodos que o usam"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+codatos-core.workspace = true
+codatos-protocol.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+
+[lints]
+workspace = true

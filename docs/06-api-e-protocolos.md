@@ -55,7 +55,7 @@ Regras das assinaturas:
 - `intervalMs` é ajustado ao mínimo do tópico (em geral 500 ms) e a no máximo 1 h; a resposta traz o valor efetivo.
 - Um coletor só roda enquanto houver assinantes, e todos os assinantes de um tópico dividem a mesma coleta. Sem assinantes (janela fechada, aba oculta), nada é coletado.
 - Falha ou *timeout* de um coletor chega como `event` com `error` (*problem details*) só naquela assinatura; depois de falhas seguidas, o intervalo dobra até 60 s.
-- `session.hello` lista em `capabilities` os tópicos disponíveis nesta máquina (ex.: `wsl.distros` só no Windows).
+- `session.hello` lista em `capabilities` os tópicos e métodos disponíveis nesta máquina (ex.: `wsl.distros` só no Windows).
 - Até 64 assinaturas por conexão. Se o cliente não lê rápido o bastante, eventos são descartados, nunca acumulados.
 
 ### Catálogo de métodos (inicial)
@@ -63,6 +63,7 @@ Regras das assinaturas:
 | Domínio | Métodos |
 |---|---|
 | Sessão | `session.hello` (versão, capacidades), `system.ping`, `vault.status`, `vault.unlock`, `vault.lock` |
+| Dashboards e preferências | `dashboards.list`, `dashboards.get`, `dashboards.save` (troca todos os widgets), `dashboards.delete`, `settings.get`, `settings.set` (`value: null` apaga; `scope`: `global`/`device`) |
 | Dashboard | `dashboards.list/get/save`, `widgets.catalog` |
 | Assinaturas | `subscribe(topic)`, `unsubscribe(sub)` — tópicos: `system.metrics`, `system.info`, `system.gpu`, `system.cpuSensors`, `disks`, `wsl.distros` (só Windows), `docker.containers`, `projects`, `weather`, `calendar.week`, `tasks.summary`, `finance.summary`, `notifications` |
 | Sistema | `processes.list`, `processes.kill` |
