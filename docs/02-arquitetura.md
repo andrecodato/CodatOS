@@ -176,8 +176,8 @@ codatos/
 │   ├── core/           # Orquestração: runtime, API local (Axum), eventos, agendador
 │   ├── collectors/     # sysinfo, NVML, WSL, Docker, git, editores
 │   ├── connections/    # SSH, SFTP, túneis, PTY local (russh, portable-pty)
-│   ├── vault/          # Cofre: chaves, cifragem de itens, keychain do SO
-│   ├── crypto/         # Primitivas e formatos (Argon2id, XChaCha20, X25519, Noise)
+│   ├── vault/          # Cofre: Argon2id, envelopes XChaCha20 v1, header (desde o M2)
+│   ├── crypto/         # X25519, Ed25519, Noise (nasce com o sync e o relay)
 │   ├── sync/           # Cliente de sincronização, fila offline, merge
 │   ├── store/          # SQLite (sqlx), migrações
 │   └── protocol/       # Tipos da API local, sync e relay (gera tipos TS para a nuvem)

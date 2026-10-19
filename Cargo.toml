@@ -7,6 +7,7 @@ members = [
   "crates/core",
   "crates/protocol",
   "crates/store",
+  "crates/vault",
 ]
 
 [workspace.package]
@@ -26,12 +27,18 @@ codatos-collectors = { path = "crates/collectors" }
 codatos-core = { path = "crates/core" }
 codatos-protocol = { path = "crates/protocol" }
 codatos-store = { path = "crates/store" }
+codatos-vault = { path = "crates/vault" }
+# Cofre (RustCrypto): versões estáveis amplamente usadas, sem os recursos de RNG próprios
+# (os nonces e sais vêm do getrandom).
+argon2 = { version = "0.5.3", default-features = false, features = ["alloc", "zeroize"] }
 axum = { version = "0.8.9", features = ["ws"] }
 base64 = "0.22.1"
+chacha20poly1305 = { version = "0.10.1", default-features = false, features = ["alloc"] }
 console_error_panic_hook = "0.1.7"
 futures-channel = "0.3.34"
 futures-util = "0.3.34"
 getrandom = "0.4.3"
+hkdf = "0.12.4"
 js-sys = "0.3.106"
 # Bibliotecas dos drivers carregadas em tempo de execução (ADL da AMD).
 libloading = "0.8.9"
@@ -61,6 +68,7 @@ tracing = "0.1.44"
 wasm-bindgen = "=0.2.129"
 wasm-bindgen-futures = "0.4.79"
 winreg = "0.56.0"
+zeroize = { version = "1.9.1", features = ["derive"] }
 web-sys = { version = "0.3.106", features = [
     "CloseEvent",
     "Crypto",
