@@ -647,6 +647,7 @@ dependencies = [
  "codatos-core",
  "codatos-protocol",
  "futures-util",
+ "libloading 0.8.9",
  "nvml-wrapper",
  "reqwest",
  "serde",
