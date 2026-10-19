@@ -39,6 +39,10 @@ futures-channel = "0.3.34"
 futures-util = "0.3.34"
 getrandom = "0.4.3"
 hkdf = "0.12.4"
+# Keychain do SO (modo sessão do cofre, Q-36), só os stores usados em cada SO.
+keyring-core = "1.0.1"
+apple-native-keyring-store = { version = "1.0.2", default-features = false, features = ["keychain"] }
+windows-native-keyring-store = { version = "1.1.0", default-features = false }
 js-sys = "0.3.106"
 # Bibliotecas dos drivers carregadas em tempo de execução (ADL da AMD).
 libloading = "0.8.9"

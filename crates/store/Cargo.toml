@@ -12,11 +12,23 @@ publish.workspace = true
 [dependencies]
 codatos-core.workspace = true
 codatos-protocol.workspace = true
+codatos-vault.workspace = true
+getrandom.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
+tokio.workspace = true
 tracing.workspace = true
+zeroize.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+keyring-core.workspace = true
+windows-native-keyring-store.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+apple-native-keyring-store.workspace = true
+keyring-core.workspace = true
 
 [dev-dependencies]
 tokio.workspace = true
