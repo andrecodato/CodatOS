@@ -1,21 +1,12 @@
-//! Menu lateral (RF-APP-006). No M0 é só visual: a navegação chega no M1.
+//! Menu lateral (RF-APP-006): uma tela por item, pelo `#` da URL ([`crate::nav`]).
 
 use leptos::prelude::*;
 
 use super::icon::{Icon, Svg};
-
-const ITEMS: [(Icon, &str); 7] = [
-    (Icon::Dashboard, "Dashboard"),
-    (Icon::Wallet, "Financeiro"),
-    (Icon::Kanban, "TaskHub"),
-    (Icon::Server, "Conexões"),
-    (Icon::FolderGit, "Projetos"),
-    (Icon::Cpu, "Sistema"),
-    (Icon::Settings, "Configurações"),
-];
+use crate::nav::Page;
 
 #[component]
-pub fn Sidebar() -> impl IntoView {
+pub fn Sidebar(page: ReadSignal<Page>) -> impl IntoView {
     view! {
         <aside class="flex w-[220px] shrink-0 flex-col border-r border-line bg-sidebar">
             <div class="flex items-center gap-2.5 px-5 py-5">
@@ -25,21 +16,20 @@ pub fn Sidebar() -> impl IntoView {
                 <span class="text-[15px] font-semibold tracking-tight">"CodatOS"</span>
             </div>
             <nav aria-label="Principal" class="flex flex-1 flex-col gap-0.5 px-3">
-                {ITEMS
+                {Page::ALL
                     .into_iter()
-                    .enumerate()
-                    .map(|(i, (icon, label))| {
-                        let active = i == 0;
+                    .map(|item| {
+                        let active = move || page.get() == item;
                         view! {
                             <a
-                                href="#"
-                                aria-current=active.then_some("page")
+                                href=item.href()
+                                aria-current=move || active().then_some("page")
                                 class="flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors duration-fast"
                                 class=(["bg-primary-soft", "text-fg", "font-medium"], active)
-                                class=(["text-muted", "hover:bg-card-hover", "hover:text-fg"], !active)
+                                class=(["text-muted", "hover:bg-card-hover", "hover:text-fg"], move || !active())
                             >
-                                <Svg icon=icon />
-                                {label}
+                                <Svg icon=item.icon() />
+                                {item.label()}
                             </a>
                         }
                     })

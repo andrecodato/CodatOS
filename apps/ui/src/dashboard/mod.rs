@@ -9,8 +9,6 @@ mod onboarding;
 mod state;
 mod widgets;
 
-use std::fmt::Write as _;
-
 use codatos_protocol::dashboard::{
     Dashboard as Saved, DashboardId, DashboardSummary, METHOD_DASHBOARDS_GET,
     METHOD_DASHBOARDS_LIST, METHOD_DASHBOARDS_SAVE, Widget,
@@ -27,6 +25,7 @@ use self::onboarding::Onboarding;
 use self::state::{ErrorState, Retry, Skeleton};
 use crate::api::{self, CoreStatus};
 use crate::components::icon::{Icon, Svg};
+use crate::ids::new_id;
 
 /// Altura de uma linha da grade e espaço entre células (tem de bater com `.dash-grid`).
 const ROW_PX: f64 = 72.0;
@@ -278,33 +277,6 @@ fn place(items: &mut [Item], priority: Option<usize>) {
 #[allow(clippy::cast_possible_truncation)] // deslocamentos de tela cabem num i32
 fn steps(px: f64, step: f64) -> i32 {
     (px / step).round() as i32
-}
-
-/// UUID v7 (tempo + aleatório), como pede o modelo de dados para ids gerados no cliente.
-fn new_id() -> String {
-    let mut random = [0u8; 10];
-    if let Ok(crypto) = window().crypto() {
-        let _ = crypto.get_random_values_with_u8_array(&mut random);
-    }
-    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)] // ms desde 1970
-    let ms = js_sys::Date::now() as u64;
-    uuid_v7(ms, random)
-}
-
-fn uuid_v7(ms: u64, random: [u8; 10]) -> String {
-    let mut b = [0u8; 16];
-    b[..6].copy_from_slice(&ms.to_be_bytes()[2..]);
-    b[6..].copy_from_slice(&random);
-    b[6] = 0x70 | (b[6] & 0x0f);
-    b[8] = 0x80 | (b[8] & 0x3f);
-    let mut out = String::with_capacity(36);
-    for (i, byte) in b.iter().enumerate() {
-        if matches!(i, 4 | 6 | 8 | 10) {
-            out.push('-');
-        }
-        let _ = write!(out, "{byte:02x}");
-    }
-    out
 }
 
 fn item_from(widget: Widget) -> Item {
@@ -1013,13 +985,6 @@ fn Catalog(open: RwSignal<bool>) -> impl IntoView {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn uuid_v7_tem_versao_variante_e_tempo() {
-        let id = uuid_v7(0x0189_abcd_ef01, [0xff; 10]);
-        assert_eq!(id, "0189abcd-ef01-7fff-bfff-ffffffffffff");
-        assert_eq!(id.len(), 36);
-    }
 
     #[test]
     fn padrao_sem_sobreposicao_e_com_extras() {
