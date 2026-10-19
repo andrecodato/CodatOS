@@ -63,10 +63,11 @@ Mostrar — e permitir controlar — o que está acontecendo no computador: hard
 | Dado | Windows | Linux | macOS |
 |---|---|---|---|
 | CPU, RAM, rede, discos, processos | `sysinfo` | `sysinfo` | `sysinfo` |
-| Temperatura CPU | ⚠️ ver abaixo | hwmon (`sysinfo`) | SMC (`sysinfo`, parcial) |
+| Temperatura CPU | PawnIO, pelo serviço `codatos-sensors` (ver abaixo) | hwmon (`sysinfo`) | SMC (`sysinfo`, parcial) |
 | GPU NVIDIA | NVML | NVML | — |
-| GPU AMD/Intel | ⚠️ limitado (ADLX/PDH) | sysfs `amdgpu`/`i915` | IOKit (Apple Silicon, parcial) |
-| Potência CPU | ⚠️ ver abaixo | RAPL (`/sys/class/powercap`) | ⚠️ `powermetrics` exige root |
+| GPU AMD | ADL (`atiadlxx.dll` do driver da AMD, sem admin) | sysfs `amdgpu` | — |
+| GPU Intel | ⚠️ depois do M2 | sysfs `i915` (depois) | IOKit (Apple Silicon, parcial) |
+| Potência CPU | PawnIO, pelo serviço `codatos-sensors` (ver abaixo) | RAPL (`/sys/class/powercap`) | ⚠️ `powermetrics` exige root |
 | Bateria | API do SO (`battery`/`starship-battery`) | idem | idem |
 | WSL | `wsl.exe` + Registro | — | — |
 | Docker | API via named pipe | socket Unix | socket Unix (Docker Desktop/Colima/OrbStack) |
@@ -78,7 +79,16 @@ O Windows não expõe temperatura de CPU nem potência de forma confiável sem d
 1. **Sem privilégio (padrão)** — mostrar o que existe: GPU via NVML, zonas térmicas ACPI quando disponíveis; os demais campos aparecem como "indisponível — ativar sensores avançados".
 2. **Sensores avançados (opt-in)** — integrar com o **LibreHardwareMonitor** (que usa o driver PawnIO em vez do antigo WinRing0, hoje bloqueado pelo Defender), lendo do servidor web/WMI dele, ou instalar um *helper* privilegiado mínimo do CodatOS.
 
-**Decidido em 2026-10-15 ([Q-13](../10-perguntas-em-aberto.md#sistema)):** opção 1 por padrão + leitura do LibreHardwareMonitor quando ele estiver rodando (servidor web local, `http://127.0.0.1:8085/data.json`). Sem o LHM, o widget mostra "temperatura indisponível" com um link de como ativar. Nenhum driver ou serviço privilegiado próprio na 1.0. Pesquisa no vault: `vault/05 Pesquisa/Temperatura no Windows.md`.
+**Decidido em 2026-10-15 ([Q-13](../10-perguntas-em-aberto.md#sistema)):** opção 1 por padrão + leitura do LibreHardwareMonitor quando ele estiver rodando. **Revisto em 2026-10-17**: o autor não quer depender de programa externo. A GPU AMD passa a ser lida pela ADL do driver (sem admin) e a temperatura e a potência da CPU pelo driver PawnIO, instalado pelo próprio CodatOS. Pesquisa no vault: `vault/05 Pesquisa/Temperatura no Windows.md`.
+
+Como funciona (crate `codatos-sensors`):
+
+- O PawnIO só aceita processos de administrador, e o CodatOS roda como usuário comum. A leitura fica num **serviço do Windows** (`codatos-sensors`, conta LocalSystem, início automático): uma cópia do próprio `codatos.exe` em `%ProgramFiles%\CodatOS\sensors\codatos-sensors.exe` (pasta onde só administradores gravam), iniciada com `--sensors-service`.
+- O serviço abre o PawnIO, carrega o módulo assinado `AMDFamily17.bin` (embutido no binário; LGPL-2.1, ver `crates/sensors/modules/NOTICE.md`) e lê, a cada conexão, a temperatura (SMN `0x59800`, fórmula do `k10temp`) e a energia do pacote (MSR `0xC001029B`; a potência é a diferença entre duas leituras).
+- Entrega as leituras no pipe `\\.\pipe\codatos-sensors`: uma linha JSON por conexão, só saída, sem clientes remotos. **Não lê nada do pipe**, então não aceita comandos. Sem clientes, fica parado (0% de CPU).
+- No widget Uso do PC, sem o serviço, aparece **"Ativar temperatura da CPU"** (`system.enableCpuSensors`). O núcleo baixa o instalador do PawnIO 2.2.0 (versão e SHA-256 fixados no código), abre **um** pedido de administrador (UAC) e um script instala o PawnIO em silêncio (se faltar), copia o executável e cria ou atualiza o serviço. O script confere o SHA-256 de novo antes de rodar o instalador.
+- Por enquanto só Ryzen (família 17h em diante). Intel fica para depois; nesses PCs o botão explica que ainda não há leitura.
+- Diagnóstico: `codatos.exe --sensors-once`, num terminal de administrador, imprime uma leitura.
 
 ### Detalhes de implementação do WSL
 
@@ -98,9 +108,9 @@ O Windows não expõe temperatura de CPU nem potência de forma confiável sem d
 
 - **Dado** duas distros (Ubuntu em execução, Debian parada), **quando** o widget WSL atualiza por 10 minutos, **então** o Debian continua parado e mostra apenas o tamanho do VHDX.
 - **Dado** o Docker Desktop com integração WSL ligada no Ubuntu, **quando** os containers são listados, **então** cada container aparece uma única vez.
-- **Dado** um PC sem GPU NVIDIA, **quando** o widget Uso do PC é exibido, **então** o anel de GPU mostra "indisponível" (ou é ocultado, conforme configuração) sem erro.
+- **Dado** um PC sem GPU NVIDIA nem AMD, **quando** o widget Uso do PC é exibido, **então** o anel de GPU mostra "indisponível" (ou é ocultado, conforme configuração) sem erro.
 
 ## Perguntas em aberto
 
-- ✅ Temperatura no Windows: LibreHardwareMonitor, sem driver próprio → [Q-13](../10-perguntas-em-aberto.md#sistema)
+- ✅ Temperatura no Windows: PawnIO instalado pelo CodatOS, lido por um serviço sem comandos → [Q-13](../10-perguntas-em-aberto.md#sistema)
 - Até onde vai o controle (desligar PC, matar processos)? → [Q-14](../10-perguntas-em-aberto.md#sistema)

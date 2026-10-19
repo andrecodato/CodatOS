@@ -81,7 +81,7 @@ impl CollectError {
         }
     }
 
-    /// A fonte não existe nesta máquina ou não está rodando (ex.: sem GPU NVIDIA).
+    /// A fonte não existe nesta máquina ou não está rodando (ex.: sem GPU).
     pub fn unavailable(title: impl Into<String>) -> Self {
         Self::new("unavailable", title)
     }

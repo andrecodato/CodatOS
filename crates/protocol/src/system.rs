@@ -85,10 +85,18 @@ pub enum DiskKind {
     Unknown,
 }
 
-/// GPUs NVIDIA via NVML (RF-SYS-003). Sem driver NVIDIA, o tópico responde `unavailable`.
+/// GPUs (RF-SYS-003): NVIDIA via NVML; AMD via ADL no Windows e `amdgpu` no Linux. Sem
+/// nenhuma, o tópico responde `unavailable`.
 pub const TOPIC_GPU: &str = "system.gpu";
-/// Temperatura e potência da CPU (Q-13). No Windows vêm do LibreHardwareMonitor.
+/// Temperatura e potência da CPU (Q-13). No Windows vêm do serviço `codatos-sensors`, que lê
+/// pelo driver PawnIO.
 pub const TOPIC_CPU_SENSORS: &str = "system.cpuSensors";
+/// Erro de `system.cpuSensors` quando o serviço não está instalado: o widget oferece
+/// [`METHOD_ENABLE_CPU_SENSORS`].
+pub const CPU_SENSORS_NOT_INSTALLED: &str = "cpu_sensors_not_installed";
+/// Instala o PawnIO e o serviço `codatos-sensors` (um pedido de administrador do Windows).
+/// Sem parâmetros; devolve `null` quando o serviço já responde. Só existe no Windows.
+pub const METHOD_ENABLE_CPU_SENSORS: &str = "system.enableCpuSensors";
 
 /// Item da amostra de `system.gpu`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -115,8 +123,8 @@ pub struct CpuSensors {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SensorSource {
-    /// Servidor web do LibreHardwareMonitor (`127.0.0.1:8085`).
-    LibreHardwareMonitor,
+    /// Driver PawnIO, pelo serviço `codatos-sensors` (Windows).
+    PawnIo,
     /// Sensores do próprio SO (hwmon no Linux, SMC no macOS).
     Os,
 }

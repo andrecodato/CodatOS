@@ -1,2 +1,2 @@
 # ".." mantém a lista padrão do clippy e acrescenta os nomes do projeto.
-doc-valid-idents = ["CodatOS", "..", "WebView2", "WebKitGTK", "PuTTY", "LibreHardwareMonitor", "SQLCipher", "JetBrains"]
+doc-valid-idents = ["CodatOS", "..", "WebView2", "WebKitGTK", "PuTTY", "PawnIO", "SQLCipher", "JetBrains"]

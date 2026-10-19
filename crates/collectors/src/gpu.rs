@@ -1,21 +1,53 @@
-//! GPUs NVIDIA via NVML (RF-SYS-003).
+//! GPUs (RF-SYS-003): uso, memória, temperatura e potência.
 //!
-//! A biblioteca do driver (`nvml.dll`, `libnvidia-ml.so`) é carregada em tempo de execução:
-//! sem GPU NVIDIA, o tópico responde `unavailable` e o widget mostra "indisponível".
+//! Tudo pelas bibliotecas que os próprios drivers instalam, sem programa externo: NVIDIA pela
+//! NVML; AMD pela ADL no Windows e pelo driver `amdgpu` no Linux. Sem nenhuma, o tópico
+//! responde `unavailable`.
 
 use std::sync::{Arc, Mutex, PoisonError};
 
 use codatos_core::{CollectError, CollectFuture, Collector};
 use codatos_protocol::system::{Gpu, TOPIC_GPU};
-use nvml_wrapper::Nvml;
-use nvml_wrapper::enum_wrappers::device::TemperatureSensor;
 
-use crate::blocking;
+#[cfg(any(windows, test))]
+mod adl;
+#[cfg(any(not(windows), test))]
+mod amdgpu;
+mod nvml;
 
-/// `system.gpu`. A NVML é iniciada na primeira coleta e reaproveitada.
+/// Biblioteca de um driver entre coletas: tentada uma vez só, para não carregar a DLL a cada
+/// amostra num PC sem aquela placa.
+#[derive(Debug, Default)]
+enum Lib<T> {
+    #[default]
+    Untried,
+    Ready(Box<T>),
+    Missing,
+}
+
+impl<T> Lib<T> {
+    fn get_or_load(&mut self, load: impl FnOnce() -> Option<T>) -> Option<&T> {
+        if matches!(self, Self::Untried) {
+            *self = load().map_or(Self::Missing, |t| Self::Ready(Box::new(t)));
+        }
+        match self {
+            Self::Ready(t) => Some(t),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+struct Libs {
+    nvml: Lib<nvml_wrapper::Nvml>,
+    #[cfg(windows)]
+    adl: Lib<adl::Adl>,
+}
+
+/// `system.gpu`.
 #[derive(Debug, Default)]
 pub struct GpuCollector {
-    nvml: Arc<Mutex<Option<Nvml>>>,
+    libs: Arc<Mutex<Libs>>,
 }
 
 impl Collector for GpuCollector {
@@ -24,43 +56,40 @@ impl Collector for GpuCollector {
     }
 
     fn collect(&self) -> CollectFuture<'_> {
-        let nvml = Arc::clone(&self.nvml);
-        Box::pin(blocking::run(move || {
-            let mut guard = nvml.lock().unwrap_or_else(PoisonError::into_inner);
-            if guard.is_none() {
-                *guard = Some(
-                    Nvml::init()
-                        .map_err(|_| CollectError::unavailable("Nenhuma GPU NVIDIA encontrada"))?,
-                );
+        let libs = Arc::clone(&self.libs);
+        Box::pin(async move {
+            let gpus = tokio::task::spawn_blocking(move || {
+                let mut libs = libs.lock().unwrap_or_else(PoisonError::into_inner);
+                gpus(&mut libs)
+            })
+            .await
+            .map_err(|_| CollectError::new("collector_panicked", "O coletor falhou"))?;
+            if gpus.is_empty() {
+                return Err(CollectError::unavailable(
+                    "Nenhuma GPU NVIDIA ou AMD encontrada",
+                ));
             }
-            let nvml = guard.as_ref().expect("acabou de ser iniciada");
-            gpus(nvml)
-        }))
+            serde_json::to_value(gpus)
+                .map_err(|_| CollectError::new("collector_invalid", "Amostra inválida"))
+        })
     }
 }
 
-fn gpus(nvml: &Nvml) -> Result<Vec<Gpu>, CollectError> {
-    let failed = |_| CollectError::new("nvml_failed", "Não consegui ler a GPU");
-    let count = nvml.device_count().map_err(failed)?;
-    let mut list = Vec::new();
-    for index in 0..count {
-        let device = nvml.device_by_index(index).map_err(failed)?;
-        let memory = device.memory_info().map_err(failed)?;
-        list.push(Gpu {
-            name: device.name().unwrap_or_else(|_| format!("GPU {index}")),
-            #[allow(clippy::cast_precision_loss)]
-            usage: device.utilization_rates().map_or(0.0, |u| u.gpu as f32),
-            memory_used: memory.used,
-            memory_total: memory.total,
-            #[allow(clippy::cast_precision_loss)]
-            temperature_c: device
-                .temperature(TemperatureSensor::Gpu)
-                .ok()
-                .map(|t| t as f32),
-            // NVML devolve miliwatts.
-            #[allow(clippy::cast_precision_loss)]
-            power_w: device.power_usage().ok().map(|mw| mw as f32 / 1000.0),
-        });
-    }
-    Ok(list)
+/// NVIDIA e AMD juntas (um PC pode ter as duas).
+fn gpus(libs: &mut Libs) -> Vec<Gpu> {
+    let mut list = libs
+        .nvml
+        .get_or_load(nvml::init)
+        .map(nvml::gpus)
+        .unwrap_or_default();
+    #[cfg(windows)]
+    list.extend(
+        libs.adl
+            .get_or_load(adl::Adl::load)
+            .map(adl::Adl::gpus)
+            .unwrap_or_default(),
+    );
+    #[cfg(not(windows))]
+    list.extend(amdgpu::gpus());
+    list
 }
