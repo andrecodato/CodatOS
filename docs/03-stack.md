@@ -14,7 +14,7 @@ Abaixo, a escolha e o motivo. As versões fixadas no M0 estão em [Versões fixa
 | Runtime assíncrono | **Tokio** | Padrão do ecossistema |
 | API local | **Axum** + tower-http | HTTP + WebSocket, servir a UI estática |
 | Banco local | **SQLite** com **SQLCipher**, via **sqlx** | Arquivo único, transacional, cifrado em repouso; migrações versionadas |
-| Métricas | **sysinfo**, **nvml-wrapper** (NVIDIA), **battery** | Cobertura multiplataforma |
+| Métricas | **sysinfo**, **nvml-wrapper** (NVIDIA), ADL via **libloading** (AMD no Windows), **battery** | Cobertura multiplataforma |
 | Windows | crate **windows** (Registro, APIs Win32), **wmi** | WSL, VHDX, sensores |
 | Docker | **bollard** | Cliente da API do Docker (named pipe / socket) |
 | SSH/SFTP | **russh** + **russh-sftp**, **ssh-key** | SSH puro Rust, sem depender de OpenSSH instalado |
