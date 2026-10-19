@@ -13,7 +13,7 @@ Nenhuma pergunta bloqueante em aberto desde 2026-10-15. Pendências práticas:
 ## Respostas
 - [x] **Q-35 — Build Windows:** testar `cargo-xwin` no M0; se falhar, Rust no Windows (2026-10-15)
 - [x] **Q-01 — Domínio:** `codatos.com` provisório, ainda não comprado (2026-10-15)
-- [x] **Q-13 — Temperatura no Windows:** sem admin + ler o LibreHardwareMonitor; sem driver próprio na 1.0 (2026-10-15) → [[Temperatura no Windows]]
+- [x] **Q-13 — Temperatura no Windows:** revisto em 2026-10-17: PawnIO instalado pelo próprio CodatOS e lido pelo serviço `codatos-sensors`, sem programa externo (antes: ler o LibreHardwareMonitor) → [[Temperatura no Windows]]
 - [x] **Q-34 — Áreas do TaskHub:** continuam campo dentro do tenant (2026-10-15) → [[TaskHub]]
 - [x] **Q-07 — Financeiro:** só no PC, gravado como item de cofre para sync futuro, com export para backup (2026-10-15) → [[Financeiro]]
 - [x] **Q-19 — Recuperação:** sem cópia da chave no servidor; chave de recuperação + dispositivo confiável no M4 (2026-10-15) → [[Zero-knowledge]]

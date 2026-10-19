@@ -52,7 +52,7 @@ Cada pergunta tem uma **proposta padrão** — se não houver resposta, seguimos
 
 | ID | Pergunta | Proposta padrão | Impacto |
 |---|---|---|---|
-| Q-13 | ✅ **Decidido em 2026-10-15**: sem admin por padrão; temperatura e watts da CPU vêm do **LibreHardwareMonitor** (servidor web local, `http://127.0.0.1:8085/data.json`) quando ele estiver rodando. Sem driver nem serviço privilegiado próprio na 1.0 (reavaliar depois); HWiNFO pode virar segunda fonte. | — | [Sistema](modulos/sistema.md#temperatura-e-energia-no-windows) |
+| Q-13 | ✅ **Decidido em 2026-10-15, revisto em 2026-10-17**: sem programa externo. GPU AMD pela ADL do driver (sem admin); temperatura e potência da CPU pelo driver **PawnIO**, instalado pelo próprio CodatOS com um pedido de admin e lido pelo serviço `codatos-sensors`, que só entrega números e não aceita comandos. Só Ryzen por enquanto; Intel depois. (A primeira decisão era ler o LibreHardwareMonitor.) | — | [Sistema](modulos/sistema.md#temperatura-e-energia-no-windows) |
 | Q-14 | ✅ **Decidido em 2026-10-17**: iniciar/encerrar distros WSL no M1, ações em containers no M2, energia e processos no M3. | — | [Sistema](modulos/sistema.md) |
 | Q-15 | ✅ **Decidido em 2026-10-17**: raízes `C:\dev` e `~/` nas distros WSL; editores **VS Code** e **JetBrains** (sem Cursor). | — | [Projetos](modulos/projetos.md) |
 

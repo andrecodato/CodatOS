@@ -1,4 +1,5 @@
-//! GPU: uso, memória, temperatura e potência das GPUs NVIDIA (`system.gpu`, via NVML).
+//! GPU: uso, memória, temperatura e potência (`system.gpu`: NVML para NVIDIA, ADL ou `amdgpu`
+//! para AMD).
 
 use codatos_protocol::system::{Gpu, TOPIC_GPU};
 use leptos::prelude::*;
