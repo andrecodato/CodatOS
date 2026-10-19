@@ -146,6 +146,13 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
                 .unwrap_or_default()
                 .into_iter()
                 .chain(vault.iter().flat_map(codatos_store::vault_methods))
+                .chain(
+                    store
+                        .as_ref()
+                        .zip(vault.as_ref())
+                        .map(|(s, v)| codatos_store::connection_methods(s, v))
+                        .unwrap_or_default(),
+                )
                 .chain(codatos_collectors::methods())
                 .collect(),
             collectors: codatos_collectors::all(store.map(settings_reader))
