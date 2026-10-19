@@ -32,13 +32,14 @@ flowchart LR
 - Coletores: CPU/RAM/GPU (NVML; AMD pela ADL), discos, rede, WSL (estado, tamanho, ações), Docker (host + WSL, deduplicado), projetos (raízes + VS Code/JetBrains).
 - Clima (Open-Meteo). Grade de widgets com modo edição. Onboarding. Acesso pelo navegador local com token.
 - **Saída**: o autor usa o dashboard diariamente no Windows; RNF-DES-01/02 atendidos.
-- **Situação (2026-10-17)**: código completo nas PRs #13 a #30 ([plano do M1](https://claude.ai/code/artifact/bccd5d5d-70fb-446f-badd-91b08dd9bbfb)); Q-14, Q-15, Q-25 e Q-30 decididas. Falta medir o RNF-DES-01/02 no Windows ([medições do M1](benchmarks/m1.md)) e o autor passar a usar o dashboard no dia a dia.
+- **Situação (2026-10-17)**: ✅ concluído nas PRs #13 a #31 ([plano do M1](https://claude.ai/code/artifact/bccd5d5d-70fb-446f-badd-91b08dd9bbfb)); Q-14, Q-15, Q-25 e Q-30 decididas. Repouso de 45,5 MB com 0% de CPU ([medições do M1](benchmarks/m1.md)); o tempo de abertura ainda vai ser registrado.
 
 ## M2 · Conexões
 
 - Hosts, grupos, identidades, chaves, known hosts, importação de `~/.ssh/config`, terminal em abas/painéis, terminais locais/WSL/Docker, SFTP de painel duplo, jump hosts, túneis, snippets.
 - Cofre local com desbloqueio (senha/PIN/biometria) e export cifrado.
 - **Saída**: o autor substitui o Termius no dia a dia.
+- **Situação (2026-10-17)**: em andamento, em 20 PRs encadeadas ([plano do M2](https://claude.ai/code/artifact/4c65cf33-a212-49c2-b7ea-08c00b42a1b8)). Q-10, Q-11 e Q-12 seguem a proposta padrão; desbloqueio do cofre na [Q-36](10-perguntas-em-aberto.md#conexões) e SQLCipher na [Q-37](10-perguntas-em-aberto.md#conexões).
 
 ## M3 · Produtividade
 

@@ -42,7 +42,7 @@ reqwest = { version = "0.13.5", default-features = false, features = ["json", "n
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 sha2 = "0.10.9"
-# Sem SQLCipher no M1: a cifra entra com o cofre (M3).
+# Sem SQLCipher por enquanto: no M2 só os segredos são cifrados, pelo cofre (Q-37).
 sqlx = { version = "0.9.0", default-features = false, features = ["macros", "migrate", "runtime-tokio", "sqlite-bundled"] }
 subtle = "2.6.1"
 sysinfo = { version = "0.39.6", default-features = false, features = ["system", "disk", "network", "component"] }
