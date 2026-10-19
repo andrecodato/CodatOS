@@ -29,3 +29,7 @@ reason = "zbus_names: sem manutenção avulsa (foi para o zbus 6); vem do zbus 5
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0372"
 reason = "zvariant_derive: sem manutenção avulsa (foi para o zbus 6); vem do zbus 5 dos plugins do Tauri, sem versão alternativa"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2023-0071"
+reason = "rsa (Marvin): sem versão corrigida em nenhuma versão; via ssh-key, o CodatOS só assina localmente com chaves RSA importadas e não decifra RSA"
