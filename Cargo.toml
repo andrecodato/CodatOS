@@ -6,6 +6,7 @@ members = [
   "crates/collectors",
   "crates/core",
   "crates/protocol",
+  "crates/sensors",
   "crates/store",
   "crates/vault",
 ]
@@ -26,6 +27,7 @@ publish = false
 codatos-collectors = { path = "crates/collectors" }
 codatos-core = { path = "crates/core" }
 codatos-protocol = { path = "crates/protocol" }
+codatos-sensors = { path = "crates/sensors" }
 codatos-store = { path = "crates/store" }
 codatos-vault = { path = "crates/vault" }
 # Cofre (RustCrypto): versões estáveis amplamente usadas, sem os recursos de RNG próprios
@@ -72,6 +74,9 @@ tracing = "0.1.44"
 wasm-bindgen = "=0.2.129"
 wasm-bindgen-futures = "0.4.79"
 winreg = "0.56.0"
+# Serviço do Windows que lê os sensores da CPU pelo PawnIO (Q-13).
+windows-service = "0.8.1"
+windows-sys = "0.61.2"
 zeroize = { version = "1.9.1", features = ["derive"] }
 web-sys = { version = "0.3.106", features = [
     "CloseEvent",

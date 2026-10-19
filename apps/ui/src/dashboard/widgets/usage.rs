@@ -1,11 +1,15 @@
 //! Uso do PC: CPU e memória agora (`system.metrics`), com a temperatura da CPU quando
-//! há sensor (`system.cpuSensors`, LibreHardwareMonitor no Windows).
+//! há sensor (`system.cpuSensors`). No Windows, sem o serviço de sensores, oferece
+//! instalá-lo (`system.enableCpuSensors`, um pedido de administrador).
 
 use std::fmt::Write as _;
 
-use codatos_protocol::system::{CpuSensors, SystemMetrics, TOPIC_CPU_SENSORS, TOPIC_METRICS};
-use leptos::prelude::*;
-use serde_json::Value;
+use codatos_protocol::system::{
+    CPU_SENSORS_NOT_INSTALLED, CpuSensors, METHOD_ENABLE_CPU_SENSORS, SystemMetrics,
+    TOPIC_CPU_SENSORS, TOPIC_METRICS,
+};
+use leptos::{prelude::*, task::spawn_local};
+use serde_json::{Value, json};
 
 use super::format::{bytes, decimal, percent};
 use super::parts::Meter;
@@ -15,6 +19,11 @@ use crate::dashboard::state::sample_view;
 pub fn render(_config: &Value) -> AnyView {
     let sample = api::subscribe(TOPIC_METRICS, None);
     let sensors = api::subscribe(TOPIC_CPU_SENSORS, None);
+    let not_installed = move || {
+        sensors
+            .get()
+            .is_some_and(|s| s.is_err_and(|p| p.code == CPU_SENSORS_NOT_INSTALLED))
+    };
     sample_view(sample, move |m: SystemMetrics| {
         let mut cpu_detail = format!("{} núcleos", m.cpu.cores.len());
         if m.cpu.frequency_mhz > 0 {
@@ -39,7 +48,44 @@ pub fn render(_config: &Value) -> AnyView {
                     value=percent(m.memory.used, m.memory.total)
                     detail=format!("{} de {}", bytes(m.memory.used), bytes(m.memory.total))
                 />
+                {move || not_installed().then(|| view! { <EnableSensors /> })}
             </div>
         }
     })
+}
+
+/// Instala o PawnIO e o serviço de sensores. O Windows pede permissão de administrador; a
+/// próxima amostra de `system.cpuSensors` já traz a temperatura.
+#[component]
+fn EnableSensors() -> impl IntoView {
+    let busy = RwSignal::new(false);
+    let error = RwSignal::new(None::<String>);
+    let run = move |_| {
+        if busy.get_untracked() {
+            return;
+        }
+        busy.set(true);
+        error.set(None);
+        spawn_local(async move {
+            let result = api::call(METHOD_ENABLE_CPU_SENSORS, json!({})).await;
+            let _ = busy.try_set(false);
+            if let Err(e) = result {
+                let _ = error.try_set(Some(e.message));
+            }
+        });
+    };
+    view! {
+        <div class="col-span-2 flex min-w-0 items-center gap-2 text-xs">
+            <button
+                type="button"
+                class="rounded px-1.5 py-1 text-primary hover:bg-card-hover disabled:opacity-50"
+                title="Instala o driver PawnIO e o serviço de sensores do CodatOS (pede administrador uma vez)"
+                disabled=move || busy.get()
+                on:click=run
+            >
+                {move || if busy.get() { "Aguardando o Windows…" } else { "Ativar temperatura da CPU" }}
+            </button>
+            {move || error.get().map(|e| view! { <span class="truncate text-danger" title=e.clone()>{e.clone()}</span> })}
+        </div>
+    }
 }

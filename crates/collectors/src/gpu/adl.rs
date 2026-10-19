@@ -4,7 +4,7 @@
 //! Usa o registro de sensores do Overdrive 8 (`ADL2_New_QueryPMLogData_Get`, Radeon RX 5000
 //! em diante): temperatura, atividade e potência; e a VRAM por
 //! `ADL2_Adapter_DedicatedVRAMUsage_Get` e `ADL2_Adapter_MemoryInfoX4_Get`. Estruturas e
-//! índices conferidos com o ADL SDK (`adl_structures.h`) e com o LibreHardwareMonitor.
+//! índices conferidos com o ADL SDK (`adl_structures.h`) e com o `LibreHardwareMonitor`.
 
 use codatos_protocol::system::Gpu;
 

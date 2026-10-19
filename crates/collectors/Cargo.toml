@@ -21,7 +21,10 @@ sysinfo.workspace = true
 tokio = { workspace = true, features = ["io-util", "process"] }
 
 [target.'cfg(windows)'.dependencies]
+base64.workspace = true
+codatos-sensors.workspace = true
 libloading.workspace = true
+sha2.workspace = true
 winreg.workspace = true
 
 [lints]
