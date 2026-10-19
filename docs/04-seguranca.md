@@ -110,6 +110,7 @@ Cada item sincronizável (um host, uma identidade, um layout…) é serializado 
 - **Bloqueio automático** por inatividade (padrão 15 min), ao bloquear a sessão do SO e ao suspender.
 - **Memória**: `secrecy`/`zeroize` para limpar segredos; nenhum segredo em logs, crash dumps ou na UI.
 - **A UI nunca recebe chaves privadas**; "revelar senha" exige reautenticação e a permissão `connections.reveal`.
+- **Serviço de sensores (Windows, opt-in)**: o único código do CodatOS que roda com privilégio é o serviço `codatos-sensors` (LocalSystem), que lê temperatura e potência da CPU pelo driver PawnIO ([Sistema](modulos/sistema.md#temperatura-e-energia-no-windows)). Ele fica em `%ProgramFiles%` (só administradores gravam), só carrega o módulo assinado embutido no binário, entrega números por um pipe local só de saída e não lê nada do cliente: não há comando para abusar. O instalador do PawnIO tem versão e SHA-256 fixados e é conferido de novo dentro do script elevado. Um processo local poderia criar o pipe antes do serviço e mostrar números falsos no widget; o serviço recusa iniciar nesse caso (`first_pipe_instance`) e o dano se limita ao número exibido.
 
 ## 8. API local
 

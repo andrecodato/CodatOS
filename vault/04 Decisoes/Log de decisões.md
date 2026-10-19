@@ -35,3 +35,4 @@ tags: [decisao]
 | 2026-10-15 | Pagamentos com Stripe (cartão + Pix) | ✅ Decidido — Q-16 | `docs/modulos/contas-e-sync.md` · [[Planos]] |
 | 2026-10-15 | Celular: três níveis por aparelho (Ver, Controlar, Total) | ✅ Decidido — Q-23 | `docs/modulos/acesso-remoto.md` · [[Acesso remoto]] |
 | 2026-10-15 | Tenant = contextos e empresas; sub user com conta própria | ✅ Decidido — Q-20 | `docs/modulos/multitenancy.md` · [[Tenant]] |
+| 2026-10-17 | Q-13 revisto: sem programa externo. GPU AMD pela ADL; CPU pelo driver PawnIO instalado pelo CodatOS (um pedido de admin) e lido pelo serviço `codatos-sensors` | ✅ Decidido — Q-13 | `docs/modulos/sistema.md` · [[Temperatura no Windows]] |
