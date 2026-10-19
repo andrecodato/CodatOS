@@ -16,6 +16,9 @@ ignore = [
   { id = "RUSTSEC-2026-0370", reason = "zvariant: sem manutenção avulsa, via zbus 5 dos plugins do Tauri" },
   { id = "RUSTSEC-2026-0371", reason = "zbus_names: sem manutenção avulsa, via zbus 5 dos plugins do Tauri" },
   { id = "RUSTSEC-2026-0372", reason = "zvariant_derive: sem manutenção avulsa, via zbus 5 dos plugins do Tauri" },
+  # Sem correção publicada em nenhuma versão do rsa. O CodatOS só assina localmente com chaves
+  # RSA importadas na autenticação SSH; não decifra RSA nem expõe um oráculo de padding.
+  { id = "RUSTSEC-2023-0071", reason = "rsa (Marvin): sem versão corrigida; via ssh-key, só assinatura local de chaves RSA importadas" },
 ]
 
 [licenses]
