@@ -20,4 +20,4 @@ pub(crate) use actions::methods;
 #[cfg(windows)]
 pub use collector::WslCollector;
 #[cfg(windows)]
-pub(crate) use collector::running;
+pub(crate) use collector::{registered, running};

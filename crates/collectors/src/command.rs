@@ -34,7 +34,6 @@ pub(crate) async fn output(program: &str, args: &[&str], timeout: Duration) -> O
 }
 
 /// Roda `program` até o fim e devolve o erro dele (saída de erro, ou de saída se vazia).
-#[cfg_attr(not(windows), allow(dead_code))] // só as ações do WSL usam
 pub(crate) async fn run(program: &str, args: &[&str], timeout: Duration) -> Result<(), String> {
     let mut command = Command::new(program);
     command

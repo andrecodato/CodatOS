@@ -60,12 +60,17 @@ pub fn all(settings: Option<SettingsReader>) -> Vec<Arc<dyn Collector>> {
     list
 }
 
-/// Métodos JSON-RPC dos coletores: busca de cidade do clima, abrir projeto e, no Windows,
-/// as ações do WSL e a ativação dos sensores da CPU.
+/// Métodos JSON-RPC dos coletores: busca de cidade do clima, abrir projeto, ações dos
+/// containers e, no Windows, as ações do WSL e a ativação dos sensores da CPU.
 pub fn methods() -> Vec<Arc<dyn Method>> {
     #[allow(unused_mut)]
     let mut list: Vec<Arc<dyn Method>> =
         vec![Arc::new(weather::SearchCity), Arc::new(projects::Open)];
+    list.extend(
+        docker::methods()
+            .into_iter()
+            .map(|m| Arc::new(m) as Arc<dyn Method>),
+    );
     #[cfg(windows)]
     list.extend(
         wsl::methods()

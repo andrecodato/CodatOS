@@ -69,10 +69,10 @@ Regras das assinaturas:
 | Assinaturas | `subscribe(topic)`, `unsubscribe(sub)` — tópicos: `system.metrics`, `system.info`, `system.gpu`, `system.cpuSensors`, `disks`, `wsl.distros` (só Windows), `docker.containers`, `projects` (configurado pela preferência `projects`, escopo `device`), `weather`, `calendar.week`, `tasks.summary`, `finance.summary`, `notifications` |
 | Sistema | `processes.list`, `processes.kill` |
 | WSL | `wsl.list`, `wsl.start`, `wsl.terminate`, `wsl.shutdown`, `wsl.setDefault` |
-| Docker | `docker.engines`, `docker.containers.list`, `docker.container.start/stop/restart`, `docker.logs.follow` |
+| Docker | `docker.start`, `docker.stop`, `docker.restart` (`container`: ID hexadecimal; `wslDistro` opcional, para o engine de dentro de uma distro); a lista vem do tópico `docker.containers`, e shell e logs ao vivo abrem pelo `terminal.open` |
 | Projetos | `projects.list`, `projects.open`, `projects.roots.save` |
 | Conexões | `connections.list` (grupos, hosts e identidades, sem segredos), `connections.saveHost/deleteHost`, `connections.saveGroup/deleteGroup` (filhos sobem para o pai), `connections.saveIdentity/deleteIdentity` (`password`: `keep`/`clear`/`set`; senha nova exige o cofre aberto e nunca volta à UI), `connections.importSshConfig` (`text` opcional; sem ele lê o `~/.ssh/config`) e `connections.exportSshConfig` (devolve o texto); `keys.generate` (`ed25519`/`ecdsaP256`/`ecdsaP384`/`rsa4096`), `keys.import` (OpenSSH ou PuTTY, com `passphrase` opcional), `keys.rename`, `keys.delete` (a chave pública vem em `connections.list`); depois `knownHosts.*` |
-| Terminal | `terminal.open(hostId \| local \| wsl \| docker)` → `channel`, `terminal.resize`, `terminal.close` |
+| Terminal | `terminal.open(hostId \| local \| wsl \| docker \| dockerLogs)` → `channel`, `terminal.resize`, `terminal.close` |
 | SFTP | `sftp.open` → `channel` e `session`; `sftp.list`, `sftp.mkdir/rename/remove/chmod`, `sftp.transfer` (fila por sessão) e `sftp.transferControl` (`pause`/`resume`/`cancel`) |
 | Túneis | `tunnels.list` (com `state`, `error` e conexões ativas), `tunnels.save`, `tunnels.delete`, `tunnels.start` (os mesmos pedidos de usuário, fingerprint e senha do terminal SSH), `tunnels.stop` |
 | Snippets | `snippets.list`, `snippets.save`, `snippets.delete` |

@@ -6,7 +6,7 @@
 mod catalog;
 mod grid;
 mod onboarding;
-mod state;
+pub(crate) mod state;
 pub(crate) mod widgets;
 
 use codatos_protocol::dashboard::{

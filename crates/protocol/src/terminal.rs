@@ -61,6 +61,8 @@ pub enum TerminalTarget {
     Wsl { distro: String },
     /// Shell dentro de um container (`docker exec -it`).
     Docker { container: String },
+    /// Logs ao vivo de um container (`docker logs --follow`), sem guardar nada.
+    DockerLogs { container: String },
     /// Sessão SSH com um host cadastrado, com a identidade, a herança dos grupos e os jump
     /// hosts.
     Ssh {

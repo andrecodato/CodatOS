@@ -5,6 +5,7 @@
 //! `docker` instalado é consultada; o Docker Desktop com integração WSL responde com o mesmo
 //! ID de engine no host e na distro, e aparece uma vez só.
 
+mod actions;
 mod parse;
 
 use std::collections::HashSet;
@@ -14,6 +15,8 @@ use codatos_core::{CollectError, CollectFuture, Collector, Intervals};
 use codatos_protocol::system::{DockerEngine, DockerStatus, TOPIC_DOCKER};
 
 use crate::command;
+
+pub(crate) use actions::methods;
 
 const INFO: &[&str] = &["info", "--format", "{{json .}}"];
 const PS: &[&str] = &["ps", "--all", "--no-trunc", "--format", "{{json .}}"];
@@ -97,12 +100,18 @@ async fn engine(wsl_distro: Option<String>) -> Option<DockerEngine> {
 /// `docker …` no host ou `wsl -d <distro> -e docker …`. Só é chamado para distros que
 /// acabaram de aparecer como ligadas (RF-SYS-024).
 async fn docker(wsl_distro: Option<&str>, args: &[&str], timeout: Duration) -> Option<String> {
+    let (program, full) = invocation(wsl_distro, args);
+    command::output(program, &full, timeout).await
+}
+
+/// Programa e argumentos de `docker …`, direto ou pelo `wsl.exe`.
+fn invocation<'a>(wsl_distro: Option<&'a str>, args: &[&'a str]) -> (&'static str, Vec<&'a str>) {
     match wsl_distro {
-        None => command::output("docker", args, timeout).await,
+        None => ("docker", args.to_vec()),
         Some(distro) => {
             let mut full = vec!["-d", distro, "-e", "docker"];
             full.extend_from_slice(args);
-            command::output("wsl.exe", &full, timeout).await
+            ("wsl.exe", full)
         }
     }
 }

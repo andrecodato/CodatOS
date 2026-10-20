@@ -1,7 +1,8 @@
 //! Conexões (`docs/modulos/conexoes.md`): hosts e pastas, identidades e chaves SSH,
-//! importação do `~/.ssh/config`. Senhas e chaves privadas vão para o núcleo e nunca
+//! importação do `~/.ssh/config`, túneis e containers Docker. Senhas e chaves privadas vão para o núcleo e nunca
 //! voltam: a UI só vê `hasPassword` e a chave pública.
 
+mod docker;
 mod hosts;
 mod import;
 mod keychain;
@@ -64,6 +65,7 @@ pub(crate) enum Tab {
     Terminal,
     Files,
     Tunnels,
+    Docker,
 }
 
 #[component]
@@ -127,6 +129,7 @@ pub fn Connections(status: ReadSignal<CoreStatus>) -> impl IntoView {
                     {tab_button(Tab::Terminal, Icon::Terminal, "Terminal")}
                     {tab_button(Tab::Files, Icon::Folder, "SFTP")}
                     {tab_button(Tab::Tunnels, Icon::ArrowDownUp, "Túneis")}
+                    {tab_button(Tab::Docker, Icon::Container, "Docker")}
                 </nav>
             </header>
             {move || match load.get() {
@@ -150,6 +153,7 @@ pub fn Connections(status: ReadSignal<CoreStatus>) -> impl IntoView {
                     Tab::Terminal => view! { <TerminalPanel /> }.into_any(),
                     Tab::Files => view! { <SftpPanel /> }.into_any(),
                     Tab::Tunnels => view! { <tunnels::Tunnels /> }.into_any(),
+                    Tab::Docker => view! { <docker::Docker /> }.into_any(),
                 },
             }}
         </section>
