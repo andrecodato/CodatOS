@@ -7,7 +7,7 @@ mod catalog;
 mod grid;
 mod onboarding;
 mod state;
-mod widgets;
+pub(crate) mod widgets;
 
 use codatos_protocol::dashboard::{
     Dashboard as Saved, DashboardId, DashboardSummary, METHOD_DASHBOARDS_GET,

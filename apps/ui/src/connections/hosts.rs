@@ -462,6 +462,11 @@ fn HostEditor(
         );
         page_tab.set(super::Tab::Terminal);
     };
+    let files = move |_| {
+        let (id, name) = draft.with_untracked(|d| (d.id.clone(), d.name.trim().to_owned()));
+        crate::sftp::Sftp::current().open(id, name);
+        page_tab.set(super::Tab::Files);
+    };
 
     let tab_button = move |value: EditorTab, label: &'static str| {
         view! {
@@ -505,6 +510,10 @@ fn HostEditor(
                     <Svg icon=Icon::Star size=18 />
                 </button>
                 {move || (!is_new.get()).then(|| view! {
+                    <button type="button" class=BUTTON on:click=files>
+                        <Svg icon=Icon::Folder size=16 />
+                        "Arquivos"
+                    </button>
                     <button type="button" class=PRIMARY on:click=connect>
                         <Svg icon=Icon::Terminal size=16 />
                         "Conectar"

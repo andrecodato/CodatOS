@@ -13,6 +13,7 @@ use serde_json::json;
 
 use crate::api::{self, CoreStatus};
 use crate::components::icon::{Icon, Svg};
+use crate::sftp::{Phase as SftpPhase, Sftp, SftpPanel};
 use crate::terminal::{TerminalPanel, Terminals};
 
 /// Lista do núcleo, compartilhada pelas abas. `None` enquanto carrega.
@@ -56,10 +57,11 @@ enum Load {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Tab {
+pub(crate) enum Tab {
     Hosts,
     Keychain,
     Terminal,
+    Files,
 }
 
 #[component]
@@ -74,12 +76,19 @@ pub fn Connections(status: ReadSignal<CoreStatus>) -> impl IntoView {
             data.reload();
         }
     });
-    // Volta direto para os terminais se algum estiver aberto.
-    let tab = RwSignal::new(if Terminals::current().tabs.with_untracked(Vec::is_empty) {
-        Tab::Hosts
-    } else {
-        Tab::Terminal
-    });
+    // Volta direto para os terminais ou para o SFTP se houver algo aberto.
+    let tab = RwSignal::new(
+        if !Terminals::current().tabs.with_untracked(Vec::is_empty) {
+            Tab::Terminal
+        } else if Sftp::current()
+            .phase
+            .with_untracked(|p| *p != SftpPhase::Idle)
+        {
+            Tab::Files
+        } else {
+            Tab::Hosts
+        },
+    );
     provide_context(tab);
     let load = Memo::new(move |_| {
         data.list.with(|l| match l {
@@ -111,9 +120,10 @@ pub fn Connections(status: ReadSignal<CoreStatus>) -> impl IntoView {
             <header class="flex items-end gap-6 border-b border-line">
                 <h1 class="pb-2 text-lg font-semibold">"Conexões"</h1>
                 <nav role="tablist" aria-label="Seções de conexões" class="flex gap-5">
-                    {tab_button(Tab::Hosts, Icon::Server, "SSH/SFTP")}
+                    {tab_button(Tab::Hosts, Icon::Server, "Hosts")}
                     {tab_button(Tab::Keychain, Icon::Key, "Chaveiro")}
                     {tab_button(Tab::Terminal, Icon::Terminal, "Terminal")}
+                    {tab_button(Tab::Files, Icon::Folder, "SFTP")}
                 </nav>
             </header>
             {move || match load.get() {
@@ -135,6 +145,7 @@ pub fn Connections(status: ReadSignal<CoreStatus>) -> impl IntoView {
                     Tab::Hosts => view! { <hosts::Hosts /> }.into_any(),
                     Tab::Keychain => view! { <keychain::Keychain /> }.into_any(),
                     Tab::Terminal => view! { <TerminalPanel /> }.into_any(),
+                    Tab::Files => view! { <SftpPanel /> }.into_any(),
                 },
             }}
         </section>

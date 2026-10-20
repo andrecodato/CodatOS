@@ -9,6 +9,7 @@ use crate::components::{sidebar::Sidebar, titlebar::Titlebar, topbar::Topbar};
 use crate::connections::Connections;
 use crate::dashboard::Dashboard;
 use crate::nav::{self, Page};
+use crate::sftp::Sftp;
 use crate::terminal::Terminals;
 use crate::vault::{UnlockDialog, Vault, VaultSettings};
 
@@ -21,6 +22,7 @@ pub fn App() -> impl IntoView {
     provide_context(Profile::load(status));
     Vault::provide(status);
     Terminals::provide();
+    Sftp::provide();
     let page = nav::page();
 
     view! {

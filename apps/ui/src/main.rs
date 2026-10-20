@@ -7,6 +7,7 @@ mod connections;
 mod dashboard;
 mod ids;
 mod nav;
+mod sftp;
 mod terminal;
 mod vault;
 

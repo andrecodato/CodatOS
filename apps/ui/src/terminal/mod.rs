@@ -24,6 +24,7 @@ use crate::api::{self, ChannelEvent};
 use crate::vault::Vault;
 use xterm::{FitAddon, Terminal};
 
+pub(crate) use panel::AskForm;
 pub use panel::TerminalPanel;
 
 /// Uma aba, do jeito que a tela precisa.
@@ -366,7 +367,7 @@ fn receiver(
 }
 
 /// Erro do `terminal.open` virando o que a aba mostra.
-fn failure(error: &codatos_protocol::rpc::RpcError) -> Phase {
+pub(crate) fn failure(error: &codatos_protocol::rpc::RpcError) -> Phase {
     let code = error.data.as_ref().map_or("", |p| p.code.as_str());
     let detail = error
         .data
