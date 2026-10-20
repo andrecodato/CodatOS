@@ -7,6 +7,7 @@ use wasm_bindgen::JsValue;
 
 use super::icon::{Icon, Svg};
 use crate::api::CoreStatus;
+use crate::vault::VaultIndicator;
 
 #[component]
 pub fn Topbar(status: ReadSignal<CoreStatus>) -> impl IntoView {
@@ -26,6 +27,7 @@ pub fn Topbar(status: ReadSignal<CoreStatus>) -> impl IntoView {
                 />
             </label>
             <div class="ml-auto flex items-center gap-4 text-muted">
+                <VaultIndicator />
                 <CoreIndicator status=status />
                 <button type="button" aria-label="Notificações" class="rounded-md p-1.5 hover:bg-card-hover hover:text-fg">
                     <Svg icon=Icon::Bell />

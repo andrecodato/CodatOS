@@ -7,6 +7,7 @@ mod connections;
 mod dashboard;
 mod ids;
 mod nav;
+mod vault;
 
 fn main() {
     console_error_panic_hook::set_once();

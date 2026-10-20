@@ -9,6 +9,7 @@ use crate::components::{sidebar::Sidebar, titlebar::Titlebar, topbar::Topbar};
 use crate::connections::Connections;
 use crate::dashboard::Dashboard;
 use crate::nav::{self, Page};
+use crate::vault::{UnlockDialog, Vault, VaultSettings};
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -17,6 +18,7 @@ pub fn App() -> impl IntoView {
     // Os widgets mostram "desatualizado" quando o núcleo cai.
     provide_context(status);
     provide_context(Profile::load(status));
+    Vault::provide(status);
     let page = nav::page();
 
     view! {
@@ -34,12 +36,25 @@ pub fn App() -> impl IntoView {
                             }
                             .into_any(),
                             Page::Connections => view! { <Connections status=status /> }.into_any(),
+                            Page::Settings => view! { <Settings /> }.into_any(),
                             other => view! { <ComingSoon page=other /> }.into_any(),
                         }}
                     </main>
                 </div>
             </div>
+            <UnlockDialog />
         </div>
+    }
+}
+
+/// Configurações: por enquanto só o cofre; perfil e aparência entram depois.
+#[component]
+fn Settings() -> impl IntoView {
+    view! {
+        <section class="space-y-4">
+            <h1 class="text-lg font-semibold">"Configurações"</h1>
+            <VaultSettings />
+        </section>
     }
 }
 
