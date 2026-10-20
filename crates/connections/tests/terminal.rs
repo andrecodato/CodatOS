@@ -19,7 +19,7 @@ type Socket = tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStre
 async fn server() -> RunningServer {
     start(ServerConfig {
         port: 0,
-        channel_methods: vec![Arc::new(OpenTerminalMethod)],
+        channel_methods: vec![Arc::new(OpenTerminalMethod::new(None))],
         ..ServerConfig::default()
     })
     .await

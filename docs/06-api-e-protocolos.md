@@ -80,7 +80,7 @@ Regras das assinaturas:
 | Tenants | `tenants.list/switch/create/update/delete` (locais); proxies para a nuvem quando conectados |
 | Sync | `sync.status`, `sync.now`, `sync.settings` |
 
-Erros seguem JSON-RPC com `data` no formato *problem details* (RFC 9457): `type`, `title`, `detail`, `code` (ex.: `vault_locked`, `permission_denied`, `capability_unavailable`).
+Erros seguem JSON-RPC com `data` no formato *problem details* (RFC 9457): `type`, `title`, `detail`, `code` (ex.: `vault_locked`, `permission_denied`, `capability_unavailable`). Quando a UI precisa de um dado para resolver o erro, ele vem em `detail` (ex.: a fingerprint do servidor em `ssh_host_key_unknown`).
 
 ### Canais binários (terminal e SFTP)
 
@@ -100,7 +100,7 @@ Implementado em `codatos_protocol::channel` e no núcleo (`ChannelMethod`):
 - O núcleo manda até 256 KiB de dados por canal sem confirmação, em frames de até 64 KiB. Depois disso, espera os `ack`s. Um `ack` não abre a janela além do tamanho inicial.
 - `fechar` vale nos dois sentidos. Frames de canais desconhecidos ou já fechados são ignorados. Fechar o WebSocket fecha todos os canais da conexão.
 
-Métodos que abrem canais: `terminal.open` ([terminais locais, WSL e Docker](modulos/conexoes.md#decisões-técnicas-do-m2)).
+Métodos que abrem canais: `terminal.open` ([terminais locais, WSL, Docker e SSH](modulos/conexoes.md#decisões-técnicas-do-m2)).
 
 ## API da nuvem (REST)
 

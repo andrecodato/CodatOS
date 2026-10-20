@@ -32,6 +32,7 @@ pub struct MethodError {
     rpc_code: i32,
     code: String,
     title: String,
+    detail: Option<String>,
 }
 
 impl MethodError {
@@ -41,7 +42,15 @@ impl MethodError {
             rpc_code: APP_ERROR,
             code: code.into(),
             title: title.into(),
+            detail: None,
         }
+    }
+
+    /// Dado que a UI precisa para resolver o erro (vai em `data.detail`).
+    #[must_use]
+    pub fn with_detail(mut self, detail: impl Into<String>) -> Self {
+        self.detail = Some(detail.into());
+        self
     }
 
     pub fn invalid_params(title: impl Into<String>) -> Self {
@@ -49,6 +58,7 @@ impl MethodError {
             rpc_code: INVALID_PARAMS,
             code: "invalid_params".to_owned(),
             title: title.into(),
+            detail: None,
         }
     }
 
@@ -57,7 +67,11 @@ impl MethodError {
     }
 
     pub(crate) fn into_rpc(self) -> RpcError {
-        RpcError::new(self.rpc_code, &self.code, self.title)
+        let mut error = RpcError::new(self.rpc_code, &self.code, self.title);
+        if let Some(problem) = error.data.as_mut() {
+            problem.detail = self.detail;
+        }
+        error
     }
 }
 
