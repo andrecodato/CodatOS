@@ -10,6 +10,7 @@ pub mod files;
 pub mod projects;
 pub mod rpc;
 pub mod sftp;
+pub mod snippets;
 pub mod system;
 pub mod terminal;
 pub mod vault;

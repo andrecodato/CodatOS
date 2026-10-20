@@ -34,7 +34,7 @@ Arquivo único cifrado (SQLCipher) por perfil de usuário. Colunas marcadas com 
 | `identities` | `id`, `tenant_id`, `name`, `username`, `password` 🔒, `key_id` | Sim |
 | `ssh_keys` | `id`, `tenant_id`, `name`, `algorithm`, `public_key`, `private_key` 🔒, `passphrase` 🔒, `fingerprint` | Sim |
 | `known_hosts` | `host_pattern`, `key_type`, `fingerprint`, `first_seen_at` | Sim |
-| `snippets` | `id`, `tenant_id`, `name`, `command`, `variables` | Sim |
+| `snippets` | `id`, `tenant_id`, `name`, `command` (variáveis são os `{{nome}}` do comando) | Sim |
 | `tunnels` | `id`, `host_id`, `kind` (L/R/D), `bind`, `target`, `autostart` | Sim |
 
 ### Financeiro

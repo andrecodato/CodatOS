@@ -167,6 +167,7 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
                         })
                         .unwrap_or_default(),
                 )
+                .chain(store.iter().flat_map(codatos_store::snippet_methods))
                 .chain(codatos_connections::local_file_methods())
                 .chain(codatos_collectors::methods())
                 .collect(),

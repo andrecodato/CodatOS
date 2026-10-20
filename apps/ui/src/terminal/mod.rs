@@ -6,6 +6,7 @@
 //! para o painel quando a aba dele está à vista.
 
 mod panel;
+mod snippets;
 pub mod xterm;
 
 use std::cell::{Cell, RefCell};
@@ -201,6 +202,35 @@ impl Terminals {
     }
 
     /// Resposta a um [`Ask`]: tenta de novo com ela.
+    /// Abas com a sessão aberta, a ativa primeiro.
+    pub fn open_ids(self) -> Vec<u64> {
+        let active = self.active.get_untracked();
+        let mut ids: Vec<u64> = self.tabs.with_untracked(|tabs| {
+            tabs.iter()
+                .filter(|t| t.phase == Phase::Open)
+                .map(|t| t.id)
+                .collect()
+        });
+        ids.sort_by_key(|id| Some(*id) != active);
+        ids
+    }
+
+    /// Manda texto como se fosse digitado. Devolve `false` se a aba não tem sessão aberta.
+    pub fn type_text(self, id: u64, text: &str) -> bool {
+        let open = self
+            .tabs
+            .with_untracked(|tabs| tabs.iter().any(|t| t.id == id && t.phase == Phase::Open));
+        if !open {
+            return false;
+        }
+        let channel = STORE.with(|s| s.borrow().sessions.get(&id).map_or(0, |s| s.channel.get()));
+        if channel == 0 {
+            return false;
+        }
+        api::channel_send(channel, text.as_bytes());
+        true
+    }
+
     pub fn answer(self, id: u64, answer: Answer) {
         let known = STORE.with(|s| {
             let mut s = s.borrow_mut();
