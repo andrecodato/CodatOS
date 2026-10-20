@@ -58,6 +58,11 @@ pub enum Icon {
     User,
     Lock,
     LockOpen,
+    Pause,
+    ArrowUp,
+    ArrowLeft,
+    ArrowRight,
+    File,
 }
 
 impl Icon {
@@ -193,6 +198,15 @@ impl Icon {
             }
             Self::Monitor => {
                 r#"<rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>"#
+            }
+            Self::Pause => {
+                r#"<rect x="14" y="3" width="5" height="18" rx="1"/><rect x="5" y="3" width="5" height="18" rx="1"/>"#
+            }
+            Self::ArrowUp => r#"<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>"#,
+            Self::ArrowLeft => r#"<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>"#,
+            Self::ArrowRight => r#"<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>"#,
+            Self::File => {
+                r#"<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>"#
             }
         }
     }

@@ -448,7 +448,11 @@ fn Overlay(tab: Tab) -> impl IntoView {
         .into_any(),
         Phase::Ask(ask) => view! {
             <Cover>
-                <AskForm id=id ask=ask />
+                <AskForm
+                    ask=ask
+                    on_answer=Callback::new(move |answer| terminals.answer(id, answer))
+                    on_cancel=Callback::new(move |()| terminals.close(id))
+                />
             </Cover>
         }
         .into_any(),
@@ -464,10 +468,15 @@ fn Cover(children: Children) -> impl IntoView {
     }
 }
 
+/// Pergunta de uma conexão SSH (chave do servidor, senha, usuário). Também serve ao SFTP.
 #[component]
-fn AskForm(id: u64, ask: Ask) -> impl IntoView {
-    let terminals = Terminals::current();
-    let cancel = move |_| terminals.close(id);
+#[allow(clippy::too_many_lines)] // três formulários pequenos, um por pergunta
+pub(crate) fn AskForm(
+    ask: Ask,
+    on_answer: Callback<Answer>,
+    on_cancel: Callback<()>,
+) -> impl IntoView {
+    let cancel = move |_| on_cancel.run(());
     // `autofocus` só vale na carga da página; aqui o campo aparece depois.
     let input = NodeRef::<html::Input>::new();
     Effect::new(move |_| {
@@ -504,7 +513,7 @@ fn AskForm(id: u64, ask: Ask) -> impl IntoView {
                         <button
                             type="button"
                             class=PRIMARY
-                            on:click=move |_| terminals.answer(id, Answer::TrustHostKey(accept.clone()))
+                            on:click=move |_| on_answer.run(Answer::TrustHostKey(accept.clone()))
                         >
                             {if changed { "Aceitar a chave nova" } else { "Confiar e conectar" }}
                         </button>
@@ -522,7 +531,7 @@ fn AskForm(id: u64, ask: Ask) -> impl IntoView {
                         e.prevent_default();
                         let password = value.get_untracked();
                         if !password.is_empty() {
-                            terminals.answer(id, Answer::Password(password));
+                            on_answer.run(Answer::Password(password));
                         }
                     }
                 >
@@ -557,7 +566,7 @@ fn AskForm(id: u64, ask: Ask) -> impl IntoView {
                         e.prevent_default();
                         let username = value.get_untracked().trim().to_owned();
                         if !username.is_empty() {
-                            terminals.answer(id, Answer::Username(username));
+                            on_answer.run(Answer::Username(username));
                         }
                     }
                 >

@@ -6,6 +6,7 @@ pub mod api;
 pub mod channel;
 pub mod connections;
 pub mod dashboard;
+pub mod files;
 pub mod projects;
 pub mod rpc;
 pub mod sftp;

@@ -8,6 +8,7 @@
 mod ids;
 pub mod keys;
 mod keys_rpc;
+mod local_files;
 mod proxy;
 mod sftp;
 mod ssh;
@@ -16,6 +17,7 @@ mod ssh_config_rpc;
 mod terminal;
 
 pub use keys_rpc::key_methods;
+pub use local_files::local_file_methods;
 pub use sftp::sftp_methods;
 pub use ssh_config_rpc::ssh_config_methods;
 pub use terminal::OpenTerminalMethod;
