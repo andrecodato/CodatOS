@@ -66,6 +66,10 @@ impl MethodError {
         &self.code
     }
 
+    pub fn detail(&self) -> Option<&str> {
+        self.detail.as_deref()
+    }
+
     pub(crate) fn into_rpc(self) -> RpcError {
         let mut error = RpcError::new(self.rpc_code, &self.code, self.title);
         if let Some(problem) = error.data.as_mut() {

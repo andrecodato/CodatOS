@@ -5,6 +5,7 @@
 mod hosts;
 mod import;
 mod keychain;
+mod tunnels;
 pub(crate) mod ui;
 
 use codatos_protocol::connections::{Connections as List, METHOD_CONNECTIONS_LIST};
@@ -62,6 +63,7 @@ pub(crate) enum Tab {
     Keychain,
     Terminal,
     Files,
+    Tunnels,
 }
 
 #[component]
@@ -124,6 +126,7 @@ pub fn Connections(status: ReadSignal<CoreStatus>) -> impl IntoView {
                     {tab_button(Tab::Keychain, Icon::Key, "Chaveiro")}
                     {tab_button(Tab::Terminal, Icon::Terminal, "Terminal")}
                     {tab_button(Tab::Files, Icon::Folder, "SFTP")}
+                    {tab_button(Tab::Tunnels, Icon::ArrowDownUp, "Túneis")}
                 </nav>
             </header>
             {move || match load.get() {
@@ -146,6 +149,7 @@ pub fn Connections(status: ReadSignal<CoreStatus>) -> impl IntoView {
                     Tab::Keychain => view! { <keychain::Keychain /> }.into_any(),
                     Tab::Terminal => view! { <TerminalPanel /> }.into_any(),
                     Tab::Files => view! { <SftpPanel /> }.into_any(),
+                    Tab::Tunnels => view! { <tunnels::Tunnels /> }.into_any(),
                 },
             }}
         </section>

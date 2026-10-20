@@ -11,6 +11,7 @@ mod keychain;
 mod methods;
 mod settings;
 mod snippets;
+mod tunnels;
 mod vault;
 mod vault_rpc;
 

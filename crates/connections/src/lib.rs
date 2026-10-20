@@ -15,9 +15,11 @@ mod ssh;
 pub mod ssh_config;
 mod ssh_config_rpc;
 mod terminal;
+mod tunnels;
 
 pub use keys_rpc::key_methods;
 pub use local_files::local_file_methods;
 pub use sftp::sftp_methods;
 pub use ssh_config_rpc::ssh_config_methods;
 pub use terminal::OpenTerminalMethod;
+pub use tunnels::TunnelManager;
