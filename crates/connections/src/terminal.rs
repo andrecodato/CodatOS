@@ -251,6 +251,21 @@ fn command_for(target: &TerminalTarget) -> Result<(CommandBuilder, String), Meth
             ]);
             (c, container.clone())
         }
+        TerminalTarget::DockerLogs { container } => {
+            if !safe_name(container) {
+                return Err(MethodError::invalid_params("Nome de container inválido"));
+            }
+            let mut c = CommandBuilder::new("docker");
+            c.args([
+                "logs",
+                "--follow",
+                "--timestamps",
+                "--tail",
+                "500",
+                container.as_str(),
+            ]);
+            (c, format!("logs · {container}"))
+        }
         TerminalTarget::Ssh { .. } => unreachable!("sessões SSH não usam PTY local"),
     };
     command.env("TERM", "xterm-256color");
@@ -308,6 +323,11 @@ mod tests {
     fn alvos_invalidos() {
         let err = command_for(&TerminalTarget::Docker {
             container: "--privileged".into(),
+        })
+        .unwrap_err();
+        assert_eq!(err.code(), "invalid_params");
+        let err = command_for(&TerminalTarget::DockerLogs {
+            container: "-f".into(),
         })
         .unwrap_err();
         assert_eq!(err.code(), "invalid_params");

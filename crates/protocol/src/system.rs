@@ -181,6 +181,23 @@ pub struct WslVm {
 /// (RF-SYS-030 a 032).
 pub const TOPIC_DOCKER: &str = "docker.containers";
 
+/// Ações dos containers (RF-SYS-033). O engine é o do host ou o de uma distro WSL.
+pub const METHOD_DOCKER_START: &str = "docker.start";
+/// Para com o prazo padrão do Docker (10 s) antes de matar.
+pub const METHOD_DOCKER_STOP: &str = "docker.stop";
+pub const METHOD_DOCKER_RESTART: &str = "docker.restart";
+
+/// Parâmetros das ações de container.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContainerRef {
+    /// ID completo (`docker ps --no-trunc`) ou curto, só hexadecimal.
+    pub container: String,
+    /// Distro do engine, como em [`DockerEngine::wsl_distro`]; `None` para o do host.
+    #[serde(default)]
+    pub wsl_distro: Option<String>,
+}
+
 /// Amostra de `docker.containers`. Cada engine aparece uma vez, mesmo visto do host e do
 /// WSL (Docker Desktop com integração WSL): a chave é o ID do engine.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
