@@ -26,4 +26,6 @@ relacionado: Q-13
 
 **Decidido (Q-13, 2026-10-15):** 1 + 2 no M1; 3 só depois da 1.0, se houver demanda.
 
+**Revisto em 2026-10-17:** o autor não quer abrir outro programa para ver a temperatura. Fica a opção 3, sem driver nosso: o CodatOS instala o **PawnIO** oficial (um pedido de admin) e um serviço pequeno, `codatos-sensors`, lê temperatura e potência do Ryzen e só entrega os números por um pipe local. A GPU AMD passou a ser lida pela ADL do próprio driver da AMD, sem admin. Detalhes em `docs/modulos/sistema.md#temperatura-e-energia-no-windows`.
+
 Ver [[Monitor do sistema]] · [[Coletor]]

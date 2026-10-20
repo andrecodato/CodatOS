@@ -29,7 +29,7 @@ flowchart LR
 
 ## M1 · Dashboard local
 
-- Coletores: CPU/RAM/GPU (NVML), discos, rede, WSL (estado, tamanho, ações), Docker (host + WSL, deduplicado), projetos (raízes + VS Code/JetBrains).
+- Coletores: CPU/RAM/GPU (NVML; AMD pela ADL), discos, rede, WSL (estado, tamanho, ações), Docker (host + WSL, deduplicado), projetos (raízes + VS Code/JetBrains).
 - Clima (Open-Meteo). Grade de widgets com modo edição. Onboarding. Acesso pelo navegador local com token.
 - **Saída**: o autor usa o dashboard diariamente no Windows; RNF-DES-01/02 atendidos.
 - **Situação (2026-10-17)**: ✅ concluído nas PRs #13 a #31 ([plano do M1](https://claude.ai/code/artifact/bccd5d5d-70fb-446f-badd-91b08dd9bbfb)); Q-14, Q-15, Q-25 e Q-30 decididas. Repouso de 45,5 MB com 0% de CPU ([medições do M1](benchmarks/m1.md)); o tempo de abertura ainda vai ser registrado.
@@ -79,7 +79,7 @@ flowchart LR
 
 | Risco | Impacto | Mitigação |
 |---|---|---|
-| Temperatura/energia no Windows exige driver | Widget incompleto | Modo sem privilégio + integração opcional com LibreHardwareMonitor ([Q-13](10-perguntas-em-aberto.md#sistema)) |
+| Temperatura/energia no Windows exige driver | Widget incompleto | Driver PawnIO instalado pelo CodatOS com um pedido de admin, lido pelo serviço `codatos-sensors` ([Q-13](10-perguntas-em-aberto.md#sistema)) |
 | Maturidade do Leptos (componentes, interop) | Ritmo da UI | Spike no M0; componentes próprios (gráficos, grade); API do núcleo independente da UI ([ADR-0002](adr/0002-tauri-e-leptos.md)) |
 | Cross-compilação do app Windows a partir do WSL (`cargo-xwin`) não funcionar bem com o Tauri | Testes de recursos do Windows mais lentos | Validar logo no M0; alternativa: CI com runner Windows ([Q-35](10-perguntas-em-aberto.md#infraestrutura-e-custos)) |
 | Custo de assinatura de código (Windows/Apple) | Alertas do SmartScreen/Gatekeeper | Começar com Windows; avaliar Azure Trusted Signing e conta Apple Developer ([Q-29](10-perguntas-em-aberto.md#infraestrutura-e-custos)) |

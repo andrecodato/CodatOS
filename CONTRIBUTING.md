@@ -34,7 +34,8 @@ Comandos do dia a dia (precisam do [`just`](https://github.com/casey/just)):
 ## Idioma
 
 - **Documentação**: português (pt-BR). Traduções para inglês são bem-vindas.
-- **Código, nomes, comentários, commits e PRs**: inglês.
+- **Código e nomes** (variáveis, funções, tipos): inglês.
+- **Comentários, commits e PRs**: pt-BR. O tipo e o escopo do commit seguem em inglês (`feat`, `fix`, `docs`…).
 - **Issues**: pt-BR ou inglês.
 
 ## Fluxo
@@ -42,9 +43,9 @@ Comandos do dia a dia (precisam do [`just`](https://github.com/casey/just)):
 1. Para algo além de uma correção pequena, **abra uma issue** antes para alinhar.
 2. Crie um branch a partir de `main`: `feat/…`, `fix/…`, `docs/…`, `chore/…`.
 3. Faça commits seguindo **[Conventional Commits](https://www.conventionalcommits.org/)**:
-   - `feat(connections): add jump host chaining`
-   - `fix(collectors): avoid starting stopped WSL distros`
-   - `docs(adr): add ADR-0009 for plugin sandbox`
+   - `feat(connections): encadeia jump hosts`
+   - `fix(collectors): não liga distros WSL paradas`
+   - `docs(adr): adiciona o ADR-0009 do sandbox de plugins`
 4. Abra o PR usando o modelo e preencha o checklist.
 
 ## Requisitos e decisões

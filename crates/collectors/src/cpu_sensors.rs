@@ -1,14 +1,18 @@
 //! Temperatura e potência da CPU (Q-13).
 //!
-//! No Windows não há leitura confiável sem driver: os valores vêm do servidor web do
-//! LibreHardwareMonitor quando ele está rodando. Nos outros SOs, dos sensores do sistema
-//! (hwmon, SMC) via `sysinfo`.
+//! No Windows não há leitura sem driver: os valores vêm do serviço `codatos-sensors`, que
+//! lê pelo driver PawnIO. Sem o serviço, o widget oferece
+//! `system.enableCpuSensors`. Nos outros SOs, dos sensores do sistema (hwmon, SMC) via
+//! `sysinfo`.
 
 use codatos_core::{CollectFuture, Collector};
 use codatos_protocol::system::TOPIC_CPU_SENSORS;
 
-#[cfg(any(windows, test))]
-mod lhm;
+#[cfg(windows)]
+mod enable;
+
+#[cfg(windows)]
+pub(crate) use enable::EnableCpuSensors;
 
 /// `system.cpuSensors`.
 #[derive(Debug, Default)]
@@ -21,9 +25,23 @@ impl Collector for CpuSensorsCollector {
 
     #[cfg(windows)]
     fn collect(&self) -> CollectFuture<'_> {
+        use codatos_core::CollectError;
+        use codatos_protocol::system::{CpuSensors, SensorSource};
+        use codatos_sensors::Reply;
+
         Box::pin(async {
-            let sensors = lhm::read(lhm::DEFAULT_ADDR).await?;
-            Ok(serde_json::to_value(sensors).expect("CpuSensors sempre serializa"))
+            match codatos_sensors::client::read().await {
+                Reply::Ok {
+                    temperature_c,
+                    power_w,
+                } => Ok(serde_json::to_value(CpuSensors {
+                    temperature_c,
+                    power_w,
+                    source: SensorSource::PawnIo,
+                })
+                .expect("CpuSensors sempre serializa")),
+                Reply::Error { code, title } => Err(CollectError::new(code, title)),
+            }
         })
     }
 
