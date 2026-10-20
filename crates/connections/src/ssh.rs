@@ -1,5 +1,7 @@
 //! Sessão SSH (`russh`, backend `ring`) com um host cadastrado, ligada a um canal binário
-//! como os terminais locais.
+//! como os terminais locais. Jump hosts (`ProxyJump`) encadeiam sessões: cada uma passa
+//! por um túnel `direct-tcpip` da anterior, com chave e login conferidos em cada salto.
+//! A primeira conexão pode sair por um proxy SOCKS5 ou HTTP ([`crate::proxy`]).
 //!
 //! Autenticação: a chave da identidade, depois a senha (digitada agora ou guardada) por
 //! `password` e por `keyboard-interactive`. A chave do servidor é conferida com a tabela
@@ -10,8 +12,9 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use codatos_core::{Channel, ChannelEvent, MethodError};
+use codatos_protocol::connections::{Connections, errors as connection_errors};
 use codatos_protocol::terminal::errors;
-use codatos_store::{EffectiveHost, Store, Vault};
+use codatos_store::{EffectiveHost, Store, Vault, effective};
 use russh::client::{self, Handle, KeyboardInteractiveAuthResponse};
 use russh::keys::{HashAlg, PrivateKey, PrivateKeyWithHashAlg, PublicKey, PublicKeyOrCertificate};
 use russh::{ChannelMsg, Disconnect};
@@ -20,11 +23,14 @@ use zeroize::Zeroizing;
 
 use crate::keys;
 use crate::keys_rpc::internal;
+use crate::proxy::Proxy;
 
 /// Rede, DNS e negociação SSH até aqui; depois disso é falha de conexão.
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
 /// Mantém a sessão viva atrás de NAT e percebe servidor sumido em ~90 s.
 const KEEPALIVE: Duration = Duration::from_secs(30);
+/// Jump hosts encadeados, contando o destino (o mesmo limite dos grupos).
+const MAX_HOPS: usize = 16;
 /// Rodadas de `keyboard-interactive` antes de desistir.
 const MAX_PROMPT_ROUNDS: usize = 4;
 
@@ -46,32 +52,38 @@ pub(crate) struct Request {
 }
 
 impl Ssh {
-    /// Conecta, autentica e abre o shell; a sessão segue numa tarefa até um lado fechar.
+    /// Conecta (pelos jump hosts, se houver), autentica e abre o shell; a sessão segue
+    /// numa tarefa até um lado fechar.
     pub(crate) async fn open(
         &self,
         request: Request,
         channel: Channel,
     ) -> Result<Value, MethodError> {
-        let host = self
-            .store
-            .effective_host(&request.host_id)
-            .await
-            .map_err(internal)?
-            .ok_or_else(|| {
-                MethodError::new(
-                    codatos_protocol::connections::errors::NOT_FOUND,
-                    "Host não encontrado",
+        let all = self.store.connections().await.map_err(internal)?;
+        let hops = chain(&all, &request.host_id)?;
+        let mut sessions: Vec<Handle<HostKeyCheck>> = Vec::with_capacity(hops.len());
+        for (i, hop) in hops.iter().enumerate() {
+            let target = i + 1 == hops.len();
+            // Usuário e senha do pedido valem só para o destino; jump hosts usam a identidade.
+            let credentials = if target {
+                self.credentials(
+                    &all,
+                    hop,
+                    request.username.clone(),
+                    request.password.clone(),
                 )
-            })?;
-        if host.jump_host_id.is_some() {
-            return Err(MethodError::new(
-                errors::JUMP_UNSUPPORTED,
-                "Conexão por jump host ainda não disponível",
-            ));
+                .await?
+            } else {
+                self.credentials(&all, hop, None, None).await?
+            };
+            let mut session = self
+                .connect(hop, request.trust_host_key.clone(), sessions.last())
+                .await?;
+            authenticate(&mut session, credentials, &hop.host.name, target).await?;
+            sessions.push(session);
         }
-        let credentials = self.credentials(&host, &request).await?;
-        let mut session = self.connect(&host, request.trust_host_key).await?;
-        authenticate(&mut session, credentials).await?;
+        let session = sessions.pop().expect("a cadeia tem ao menos o destino");
+        let host = hops.last().expect("a cadeia tem ao menos o destino");
 
         let ssh_channel = session
             .channel_open_session()
@@ -97,43 +109,39 @@ impl Ssh {
         if let Err(error) = self.store.touch_host(&host.host.id).await {
             tracing::warn!(%error, "não foi possível marcar o host como usado");
         }
-        tokio::spawn(pump(session, ssh_channel, channel));
+        tokio::spawn(pump(session, sessions, ssh_channel, channel));
         Ok(json!({ "title": host.host.name }))
     }
 
     /// Usuário, chave e senha: do pedido primeiro, depois da identidade (decifrados agora).
     async fn credentials(
         &self,
+        all: &Connections,
         host: &EffectiveHost,
-        request: &Request,
+        username: Option<String>,
+        password: Option<Zeroizing<String>>,
     ) -> Result<Credentials, MethodError> {
-        let identity = match &host.identity_id {
-            Some(id) => self
-                .store
-                .connections()
-                .await
-                .map_err(internal)?
-                .identities
-                .into_iter()
-                .find(|i| i.id == *id),
-            None => None,
-        };
-        let username = request
-            .username
-            .clone()
+        let identity = host
+            .identity_id
+            .as_ref()
+            .and_then(|id| all.identities.iter().find(|i| i.id == *id));
+        let username = username
             .filter(|u| !u.trim().is_empty())
-            .or_else(|| identity.as_ref().map(|i| i.username.clone()))
+            .or_else(|| identity.map(|i| i.username.clone()))
             .filter(|u| !u.trim().is_empty())
             .ok_or_else(|| {
-                MethodError::new(errors::USERNAME_REQUIRED, "Informe o usuário para conectar")
+                MethodError::new(
+                    errors::USERNAME_REQUIRED,
+                    format!("Informe o usuário para conectar a {}", host.host.name),
+                )
             })?;
 
-        let key = match identity.as_ref().and_then(|i| i.key_id.as_deref()) {
+        let key = match identity.and_then(|i| i.key_id.as_deref()) {
             Some(key_id) => self.private_key(key_id).await?,
             None => None,
         };
-        let password = match (&request.password, &identity) {
-            (Some(password), _) => Some(password.clone()),
+        let password = match (password, identity) {
+            (Some(password), _) => Some(password),
             (None, Some(identity)) if identity.has_password => self
                 .secret(
                     &identity.id,
@@ -174,12 +182,15 @@ impl Ssh {
         Ok(Some(self.vault.open_item(item_id, &envelope)?))
     }
 
-    /// TCP e negociação SSH, conferindo a chave do servidor.
+    /// TCP (ou túnel `direct-tcpip` pelo jump host `via`) e negociação SSH, conferindo a
+    /// chave do servidor.
     async fn connect(
         &self,
         host: &EffectiveHost,
         trust: Option<String>,
+        via: Option<&Handle<HostKeyCheck>>,
     ) -> Result<Handle<HostKeyCheck>, MethodError> {
+        let name = &host.host.name;
         let address = host.host.address.trim().to_owned();
         let port = host.host.port;
         let pattern = known_hosts_pattern(&address, port);
@@ -197,10 +208,33 @@ impl Ssh {
             nodelay: true,
             ..client::Config::default()
         });
-        let result = tokio::time::timeout(
-            CONNECT_TIMEOUT,
-            client::connect(config, (address.as_str(), port), check),
-        )
+        // Só a primeira conexão sai pelo proxy; as seguintes passam pelos jump hosts.
+        let proxy = match via {
+            None => Proxy::from_advanced(&host.advanced)?,
+            Some(_) => None,
+        };
+        let result = tokio::time::timeout(CONNECT_TIMEOUT, async {
+            match via {
+                None => match &proxy {
+                    None => client::connect(config, (address.as_str(), port), check).await,
+                    Some(proxy) => {
+                        let stream = proxy.connect(&address, port).await?;
+                        client::connect_stream(config, stream, check).await
+                    }
+                },
+                Some(jump) => {
+                    let tunnel = jump
+                        .channel_open_direct_tcpip(
+                            address.as_str(),
+                            u32::from(port),
+                            "127.0.0.1",
+                            0,
+                        )
+                        .await?;
+                    client::connect_stream(config, tunnel.into_stream(), check).await
+                }
+            }
+        })
         .await;
         let seen = seen
             .lock()
@@ -220,29 +254,60 @@ impl Ssh {
             (Ok(Err(_)), Some(key)) if !key.trusted => Err(if known.is_empty() {
                 MethodError::new(
                     errors::HOST_KEY_UNKNOWN,
-                    format!("Primeira conexão a {address}: confira a chave do servidor"),
+                    format!("Primeira conexão a {name} ({address}): confira a chave do servidor"),
                 )
             } else {
                 MethodError::new(
                     errors::HOST_KEY_CHANGED,
                     format!(
-                        "A chave do servidor {address} mudou. Se o servidor não foi trocado, \
-                         alguém pode estar interceptando a conexão"
+                        "A chave do servidor {name} ({address}) mudou. Se o servidor não foi \
+                         trocado, alguém pode estar interceptando a conexão"
                     ),
                 )
             }
             .with_detail(key.fingerprint)),
-            (Ok(Err(error)), _) => Err(connect_failed(error)),
+            (Ok(Err(error)), _) => Err(MethodError::new(
+                errors::CONNECT_FAILED,
+                match &proxy {
+                    Some(proxy) => {
+                        format!(
+                            "Falha ao conectar a {name} pelo {}: {error}",
+                            proxy.describe()
+                        )
+                    }
+                    None => format!("Falha ao conectar a {name}: {error}"),
+                },
+            )),
             (Ok(Ok(_)), None) => Err(MethodError::new(
                 errors::CONNECT_FAILED,
                 "O servidor não apresentou chave",
             )),
             (Err(_), _) => Err(MethodError::new(
                 errors::CONNECT_FAILED,
-                format!("{address}:{port} não respondeu"),
+                format!("{name} ({address}:{port}) não respondeu"),
             )),
         }
     }
+}
+
+/// Hosts da conexão, do jump host mais externo ao destino.
+fn chain(all: &Connections, host_id: &str) -> Result<Vec<EffectiveHost>, MethodError> {
+    let mut hops = Vec::new();
+    let mut next = Some(host_id.to_owned());
+    while let Some(id) = next.take() {
+        let host = effective(all, &id)
+            .ok_or_else(|| MethodError::new(connection_errors::NOT_FOUND, "Host não encontrado"))?;
+        if hops.len() >= MAX_HOPS || hops.iter().any(|h: &EffectiveHost| h.host.id == id) {
+            return Err(MethodError::new(
+                connection_errors::CYCLE,
+                "A cadeia de jump hosts volta ao início ou é longa demais",
+            ));
+        }
+        next.clone_from(&host.jump_host_id);
+        hops.push(host);
+    }
+    hops.reverse();
+    Ok(hops)
 }
 
 /// Chave da tabela `known_hosts`: `endereço:porta`, endereço em minúsculas.
@@ -302,9 +367,13 @@ impl client::Handler for HostKeyCheck {
     }
 }
 
+/// `target`: o destino, onde a UI pode pedir a senha; num jump host, ela precisa estar
+/// guardada na identidade.
 async fn authenticate(
     session: &mut Handle<HostKeyCheck>,
     credentials: Credentials,
+    name: &str,
+    target: bool,
 ) -> Result<(), MethodError> {
     let Credentials {
         username,
@@ -326,10 +395,16 @@ async fn authenticate(
         }
     }
     let Some(password) = password else {
-        return Err(MethodError::new(
-            errors::PASSWORD_REQUIRED,
-            "Digite a senha para conectar",
-        ));
+        return Err(if target {
+            MethodError::new(errors::PASSWORD_REQUIRED, "Digite a senha para conectar")
+        } else {
+            MethodError::new(
+                errors::AUTH_FAILED,
+                format!(
+                    "O jump host {name} pede senha: guarde a senha ou uma chave na identidade dele"
+                ),
+            )
+        });
     };
     let result = session
         .authenticate_password(&username, password.as_str())
@@ -368,13 +443,14 @@ async fn authenticate(
     }
     Err(MethodError::new(
         errors::AUTH_FAILED,
-        "O servidor recusou o usuário ou a senha",
+        format!("{name} recusou o usuário ou a senha"),
     ))
 }
 
 /// Liga o shell remoto ao canal até um dos lados acabar.
 async fn pump(
     session: Handle<HostKeyCheck>,
+    jumps: Vec<Handle<HostKeyCheck>>,
     ssh_channel: russh::Channel<client::Msg>,
     mut channel: Channel,
 ) {
@@ -432,9 +508,12 @@ async fn pump(
         let _ = output.await;
     }
     let _ = write.close().await;
-    let _ = session
-        .disconnect(Disconnect::ByApplication, "", "pt-BR")
-        .await;
+    // Do destino para fora: cada jump host só cai depois de quem passa por ele.
+    for session in std::iter::once(session).chain(jumps.into_iter().rev()) {
+        let _ = session
+            .disconnect(Disconnect::ByApplication, "", "pt-BR")
+            .await;
+    }
     channel.sender.close().await;
 }
 

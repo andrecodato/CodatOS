@@ -881,6 +881,7 @@ dependencies = [
  "getrandom 0.4.3",
  "portable-pty",
  "russh",
+ "serde",
  "serde_json",
  "ssh-key",
  "tokio",

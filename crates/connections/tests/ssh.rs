@@ -1,6 +1,7 @@
 //! `terminal.open` com `kind: "ssh"` contra um servidor `russh` no próprio teste: chave do
 //! servidor, senha guardada, senha digitada, chave SSH e o shell pelo canal binário.
 
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -25,9 +26,10 @@ use zeroize::Zeroizing;
 // ---------- servidor SSH de teste ----------
 
 /// Aceita `andre`/`segredo` ou a chave em `allowed`; o shell ecoa o que recebe.
-#[derive(Clone)]
 struct TestServer {
     allowed: Arc<Mutex<Option<PublicKey>>>,
+    /// Canais de shell; os de túnel não passam pelo eco.
+    shells: HashSet<ChannelId>,
 }
 
 // O trait pede `async fn`; o servidor de teste não espera nada.
@@ -56,11 +58,35 @@ impl russh::server::Handler for TestServer {
 
     async fn channel_open_session(
         &mut self,
-        _channel: Channel<Msg>,
+        channel: Channel<Msg>,
         reply: russh::server::ChannelOpenHandle,
         _session: &mut Session,
     ) -> Result<(), Self::Error> {
+        self.shells.insert(channel.id());
         reply.accept().await;
+        Ok(())
+    }
+
+    /// Túnel do jump host: liga o canal a uma conexão TCP ao destino.
+    async fn channel_open_direct_tcpip(
+        &mut self,
+        channel: Channel<Msg>,
+        host: &str,
+        port: u32,
+        _: &str,
+        _: u32,
+        reply: russh::server::ChannelOpenHandle,
+        _session: &mut Session,
+    ) -> Result<(), Self::Error> {
+        let Ok(mut upstream) = TcpStream::connect((host, u16::try_from(port).unwrap())).await
+        else {
+            return Ok(());
+        };
+        reply.accept().await;
+        tokio::spawn(async move {
+            let mut stream = channel.into_stream();
+            let _ = tokio::io::copy_bidirectional(&mut stream, &mut upstream).await;
+        });
         Ok(())
     }
 
@@ -99,6 +125,9 @@ impl russh::server::Handler for TestServer {
         data: &[u8],
         session: &mut Session,
     ) -> Result<(), Self::Error> {
+        if !self.shells.contains(&channel) {
+            return Ok(());
+        }
         if data == b"exit\n" {
             session.data(channel, b"tchau\r\n".to_vec())?;
             session.exit_status_request(channel, 0)?;
@@ -143,6 +172,7 @@ async fn ssh_server(allowed: Arc<Mutex<Option<PublicKey>>>) -> u16 {
             let config = Arc::clone(&config);
             let handler = TestServer {
                 allowed: Arc::clone(&allowed),
+                shells: HashSet::new(),
             };
             tokio::spawn(async move {
                 if let Ok(session) = russh::server::run_stream(config, stream, handler).await {
@@ -482,4 +512,190 @@ async fn senha_digitada_chave_e_recusas() {
     .await;
     let r = call(&mut socket, "terminal.open", ssh_target("h2", &json!({}))).await;
     assert_eq!(r["error"]["data"]["code"], errors::CONNECT_FAILED);
+}
+
+#[tokio::test]
+async fn passa_pelos_jump_hosts() {
+    let allowed = Arc::new(Mutex::new(None));
+    let bastion = ssh_server(Arc::clone(&allowed)).await;
+    let inner = ssh_server(Arc::clone(&allowed)).await;
+    let target = ssh_server(Arc::clone(&allowed)).await;
+    let (server, _store) = core().await;
+    let mut socket = connect(&server).await;
+    call(
+        &mut socket,
+        "connections.saveIdentity",
+        json!({"id": "i1", "name": "André", "username": "andre", "password": {"action": "set", "value": "segredo"}}),
+    )
+    .await;
+    // Destino → interno → bastião; o destino herda a identidade.
+    for (id, port, jump) in [
+        ("b", bastion, None),
+        ("m", inner, Some("b")),
+        ("d", target, Some("m")),
+    ] {
+        let r = call(
+            &mut socket,
+            "connections.saveHost",
+            json!({"id": id, "name": id, "address": "127.0.0.1", "port": port, "identityId": "i1", "jumpHostId": jump}),
+        )
+        .await;
+        assert!(r.get("error").is_none(), "{r}");
+    }
+
+    // Uma pergunta por salto, de fora para dentro.
+    let mut trusted = Vec::new();
+    for expected in ["b (127.0.0.1)", "m (127.0.0.1)", "d (127.0.0.1)"] {
+        let r = call(&mut socket, "terminal.open", ssh_target("d", &json!({}))).await;
+        assert_eq!(r["error"]["data"]["code"], errors::HOST_KEY_UNKNOWN, "{r}");
+        assert!(
+            r["error"]["data"]["title"]
+                .as_str()
+                .unwrap()
+                .contains(expected),
+            "{r}"
+        );
+        let fingerprint = r["error"]["data"]["detail"].as_str().unwrap().to_owned();
+        let r = call(
+            &mut socket,
+            "terminal.open",
+            ssh_target("d", &json!({"trustHostKey": fingerprint})),
+        )
+        .await;
+        trusted.push(fingerprint);
+        if r.get("result").is_some() {
+            assert_eq!(trusted.len(), 3, "abriu antes de conferir todos: {r}");
+            let channel = channel_of(&r);
+            read_until(&mut socket, channel, Some("bem-vindo")).await;
+            send(&mut socket, channel, Frame::Data(b"oi")).await;
+            read_until(&mut socket, channel, Some("eco:oi")).await;
+            send(&mut socket, channel, Frame::Data(b"exit\n")).await;
+            read_until(&mut socket, channel, None).await;
+        }
+    }
+    assert_eq!(trusted.len(), 3);
+
+    // Tudo aceito: conecta direto.
+    let r = call(&mut socket, "terminal.open", ssh_target("d", &json!({}))).await;
+    read_until(&mut socket, channel_of(&r), Some("bem-vindo")).await;
+
+    // Jump host sem senha guardada: o erro diz qual host.
+    call(
+        &mut socket,
+        "connections.saveIdentity",
+        json!({"id": "i2", "name": "Sem senha", "username": "andre"}),
+    )
+    .await;
+    call(
+        &mut socket,
+        "connections.saveHost",
+        json!({"id": "b", "name": "b", "address": "127.0.0.1", "port": bastion, "identityId": "i2"}),
+    )
+    .await;
+    let r = call(
+        &mut socket,
+        "terminal.open",
+        ssh_target("d", &json!({"password": "segredo"})),
+    )
+    .await;
+    assert_eq!(r["error"]["data"]["code"], errors::AUTH_FAILED, "{r}");
+    assert!(
+        r["error"]["data"]["title"]
+            .as_str()
+            .unwrap()
+            .contains("jump host b")
+    );
+}
+
+/// Proxy HTTP `CONNECT` mínimo; conta as conexões que repassou.
+async fn http_proxy(count: Arc<Mutex<usize>>) -> u16 {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = listener.local_addr().unwrap().port();
+    tokio::spawn(async move {
+        loop {
+            let (mut client, _) = listener.accept().await.unwrap();
+            let count = Arc::clone(&count);
+            tokio::spawn(async move {
+                let mut head = Vec::new();
+                while !head.ends_with(b"\r\n\r\n") {
+                    head.push(client.read_u8().await.unwrap());
+                }
+                let head = String::from_utf8(head).unwrap();
+                let authority = head.split(' ').nth(1).unwrap().to_owned();
+                let mut upstream = TcpStream::connect(authority).await.unwrap();
+                *count.lock().unwrap() += 1;
+                client
+                    .write_all(b"HTTP/1.1 200 Connection established\r\n\r\n")
+                    .await
+                    .unwrap();
+                let _ = tokio::io::copy_bidirectional(&mut client, &mut upstream).await;
+            });
+        }
+    });
+    port
+}
+
+#[tokio::test]
+async fn sai_pelo_proxy_do_grupo() {
+    let port = ssh_server(Arc::default()).await;
+    let count = Arc::new(Mutex::new(0));
+    let proxy = http_proxy(Arc::clone(&count)).await;
+    let (server, store) = core().await;
+    let mut socket = connect(&server).await;
+    // O proxy vem do grupo, por herança.
+    let r = call(
+        &mut socket,
+        "connections.saveGroup",
+        json!({"id": "g1", "name": "Rede do cliente", "defaults": {"advanced": {"proxy": {"type": "http", "host": "127.0.0.1", "port": proxy}}}}),
+    )
+    .await;
+    assert!(r.get("error").is_none(), "{r}");
+    call(
+        &mut socket,
+        "connections.saveHost",
+        json!({"id": "h1", "name": "Atrás do proxy", "address": "127.0.0.1", "port": port, "groupId": "g1"}),
+    )
+    .await;
+    let r = call(
+        &mut socket,
+        "terminal.open",
+        ssh_target("h1", &json!({"username": "andre"})),
+    )
+    .await;
+    let fingerprint = r["error"]["data"]["detail"].as_str().unwrap().to_owned();
+    store
+        .trust_host_key(&format!("127.0.0.1:{port}"), "ssh-ed25519", &fingerprint)
+        .await
+        .unwrap();
+    let r = call(
+        &mut socket,
+        "terminal.open",
+        ssh_target("h1", &json!({"username": "andre", "password": "segredo"})),
+    )
+    .await;
+    read_until(&mut socket, channel_of(&r), Some("bem-vindo")).await;
+    assert_eq!(*count.lock().unwrap(), 2);
+
+    // Proxy fora do ar: o erro diz que foi pelo proxy.
+    call(
+        &mut socket,
+        "connections.saveGroup",
+        json!({"id": "g1", "name": "Rede do cliente", "defaults": {"advanced": {"proxy": {"type": "socks5", "host": "127.0.0.1", "port": 1}}}}),
+    )
+    .await;
+    let r = call(
+        &mut socket,
+        "terminal.open",
+        ssh_target("h1", &json!({"username": "andre"})),
+    )
+    .await;
+    assert_eq!(r["error"]["data"]["code"], errors::CONNECT_FAILED);
+    assert!(
+        r["error"]["data"]["title"]
+            .as_str()
+            .unwrap()
+            .contains("proxy SOCKS5"),
+        "{r}"
+    );
 }
