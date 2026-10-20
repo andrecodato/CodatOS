@@ -19,11 +19,12 @@ const COLORS: [&str; 6] = [
     "#3b82f6", "#f43f5e", "#f59e0b", "#22c55e", "#a855f7", "#06b6d4",
 ];
 
-/// O que o painel da direita mostra.
+/// O host aberto no painel da direita. `new` marca um host que ainda não foi salvo; o id
+/// já nasce aqui para que salvar não troque a seleção (e não remonte o editor).
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum Selected {
-    Host(String),
-    New,
+struct Selected {
+    id: String,
+    new: bool,
 }
 
 #[component]
@@ -61,7 +62,7 @@ pub fn Hosts() -> impl IntoView {
                     </button>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <button type="button" class=PRIMARY on:click=move |_| selected.set(Some(Selected::New))>
+                    <button type="button" class=PRIMARY on:click=move |_| selected.set(Some(Selected { id: new_id(), new: true }))>
                         <Svg icon=Icon::Plus size=16 />
                         "Nova conexão"
                     </button>
@@ -85,11 +86,12 @@ pub fn Hosts() -> impl IntoView {
                     }
                     .into_any(),
                     Some(sel) => {
-                        let host = match &sel {
-                            Selected::Host(id) => data.get_untracked().hosts.into_iter().find(|h| h.id == *id),
-                            Selected::New => None,
+                        let host = if sel.new {
+                            None
+                        } else {
+                            data.get_untracked().hosts.into_iter().find(|h| h.id == sel.id)
                         };
-                        view! { <HostEditor host=host selected=selected /> }.into_any()
+                        view! { <HostEditor id=sel.id host=host selected=selected /> }.into_any()
                     }
                 }}
             </div>
@@ -168,7 +170,7 @@ fn HostList(
         let id = host.id.clone();
         let active = {
             let id = id.clone();
-            move || selected.get() == Some(Selected::Host(id.clone()))
+            move || selected.with(|s| s.as_ref().is_some_and(|s| s.id == id))
         };
         let subtitle = target(&host, list);
         let color = host
@@ -183,7 +185,7 @@ fn HostList(
                     class=(["bg-primary-soft"], active.clone())
                     class=(["hover:bg-card-hover"], move || !active())
                     style=format!("padding-left: {}rem", 0.75 + 1.0 * f64::from(u32::try_from(depth).unwrap_or(0)))
-                    on:click=move |_| selected.set(Some(Selected::Host(id.clone())))
+                    on:click=move |_| selected.set(Some(Selected { id: id.clone(), new: false }))
                 >
                     <span class="size-2 shrink-0 rounded-full border border-line" style=format!("background: {color}")></span>
                     <span class="min-w-0 flex-1">
@@ -287,9 +289,9 @@ struct Draft {
 }
 
 impl Draft {
-    fn new() -> Self {
+    fn new(id: String) -> Self {
         Self {
-            id: new_id(),
+            id,
             port: DEFAULT_SSH_PORT.to_string(),
             ..Self::default()
         }
@@ -384,10 +386,17 @@ enum EditorTab {
 }
 
 #[component]
-fn HostEditor(host: Option<Host>, selected: RwSignal<Option<Selected>>) -> impl IntoView {
+fn HostEditor(
+    id: String,
+    host: Option<Host>,
+    selected: RwSignal<Option<Selected>>,
+) -> impl IntoView {
     let data = expect_context::<Data>();
-    let is_new = host.is_none();
-    let draft = RwSignal::new(host.as_ref().map_or_else(Draft::new, Draft::from_host));
+    let is_new = RwSignal::new(host.is_none());
+    let draft = RwSignal::new(
+        host.as_ref()
+            .map_or_else(|| Draft::new(id), Draft::from_host),
+    );
     let tab = RwSignal::new(EditorTab::General);
     let busy = RwSignal::new(false);
     let error = RwSignal::new(None::<String>);
@@ -409,8 +418,8 @@ fn HostEditor(host: Option<Host>, selected: RwSignal<Option<Selected>>) -> impl 
             match result {
                 Ok(_) => {
                     saved.set(true);
+                    is_new.set(false);
                     data.reload();
-                    selected.set(Some(Selected::Host(host.id)));
                 }
                 Err(e) => error.set(Some(e)),
             }
@@ -457,7 +466,7 @@ fn HostEditor(host: Option<Host>, selected: RwSignal<Option<Selected>>) -> impl 
             <header class="flex items-center gap-3 border-b border-line px-5 py-4">
                 <span class="rounded-md bg-primary-soft p-2 text-primary"><Svg icon=Icon::Server size=18 /></span>
                 <div class="min-w-0 flex-1">
-                    <h2 class="truncate text-base font-semibold">
+                    <h2 class="truncate text-[1rem] font-semibold">
                         {move || {
                             let name = draft.with(|d| d.name.trim().to_owned());
                             if name.is_empty() { "Nova conexão".to_owned() } else { name }
@@ -492,7 +501,7 @@ fn HostEditor(host: Option<Host>, selected: RwSignal<Option<Selected>>) -> impl 
                 <FormError error=error />
             </div>
             <footer class="flex items-center gap-2 border-t border-line px-5 py-3">
-                {(!is_new).then(|| view! {
+                {move || (!is_new.get()).then(|| view! {
                     <button type="button" class=DANGER on:click=delete>
                         <Svg icon=Icon::Trash size=16 />
                         "Apagar"
@@ -887,11 +896,7 @@ mod tests {
 
     #[test]
     fn validacao_do_rascunho() {
-        // `Draft::new` gera o id pelo navegador; aqui o id não importa.
-        let mut draft = Draft {
-            port: "22".into(),
-            ..Draft::default()
-        };
+        let mut draft = Draft::new("h1".into());
         assert!(draft.to_host().is_err());
         draft.name = "web".into();
         draft.address = "web.lan".into();
