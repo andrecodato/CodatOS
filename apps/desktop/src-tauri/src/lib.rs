@@ -142,6 +142,10 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
             .as_ref()
             .zip(vault.as_ref())
             .map(|(s, v)| codatos_connections::sftp_methods(s, v));
+        let tunnels = store
+            .as_ref()
+            .zip(vault.as_ref())
+            .map(|(s, v)| codatos_connections::TunnelManager::new(s, v));
         let config = ServerConfig {
             port: DEFAULT_PORT,
             ui_dir,
@@ -162,6 +166,9 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
                             methods.extend(codatos_connections::ssh_config_methods(s, v));
                             if let Some((_, sftp)) = &sftp {
                                 methods.extend(sftp.iter().cloned());
+                            }
+                            if let Some(tunnels) = &tunnels {
+                                methods.extend(tunnels.methods());
                             }
                             methods
                         })
@@ -188,6 +195,9 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
             // O servidor para quando o processo termina.
             Ok(server) => {
                 let _ = app.state::<Core>().0.set(server);
+                if let Some(tunnels) = &tunnels {
+                    tunnels.autostart();
+                }
             }
             Err(error) => tracing::error!(%error, "núcleo não subiu"),
         }

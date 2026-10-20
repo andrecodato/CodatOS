@@ -13,5 +13,6 @@ pub mod sftp;
 pub mod snippets;
 pub mod system;
 pub mod terminal;
+pub mod tunnels;
 pub mod vault;
 pub mod weather;

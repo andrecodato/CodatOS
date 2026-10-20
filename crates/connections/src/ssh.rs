@@ -19,6 +19,7 @@ use russh::client::{self, Handle, KeyboardInteractiveAuthResponse};
 use russh::keys::{HashAlg, PrivateKey, PrivateKeyWithHashAlg, PublicKey, PublicKeyOrCertificate};
 use russh::{ChannelMsg, Disconnect};
 use serde_json::{Value, json};
+use tokio::sync::mpsc;
 use zeroize::Zeroizing;
 
 use crate::keys;
@@ -56,17 +57,27 @@ pub(crate) struct Request {
     pub rows: u16,
 }
 
+/// Para onde vão os canais `forwarded-tcpip` que o servidor abre num túnel remoto (`-R`).
+/// Vazio: o servidor recebe recusa.
+pub(crate) type Forwarded = Arc<Mutex<Option<mpsc::UnboundedSender<russh::Channel<client::Msg>>>>>;
+
 /// Sessão autenticada com o destino e os jump hosts por onde ela passa.
 pub(crate) struct Connected {
     pub session: Handle<HostKeyCheck>,
     pub jumps: Vec<Handle<HostKeyCheck>>,
     pub host: EffectiveHost,
+    pub forwarded: Forwarded,
 }
 
 impl Connected {
     /// Do destino para fora: cada jump host só cai depois de quem passa por ele.
     pub(crate) async fn disconnect(self) {
-        for session in std::iter::once(self.session).chain(self.jumps.into_iter().rev()) {
+        self.close().await;
+    }
+
+    /// Como [`Connected::disconnect`], para uma sessão compartilhada entre tarefas.
+    pub(crate) async fn close(&self) {
+        for session in std::iter::once(&self.session).chain(self.jumps.iter().rev()) {
             let _ = session
                 .disconnect(Disconnect::ByApplication, "", "pt-BR")
                 .await;
@@ -114,6 +125,7 @@ impl Ssh {
         let all = self.store.connections().await.map_err(internal)?;
         let mut hops = chain(&all, &request.host_id)?;
         let mut sessions: Vec<Handle<HostKeyCheck>> = Vec::with_capacity(hops.len());
+        let mut forwarded = Forwarded::default();
         for (i, hop) in hops.iter().enumerate() {
             let target = i + 1 == hops.len();
             // Usuário e senha do pedido valem só para o destino; jump hosts usam a identidade.
@@ -128,9 +140,10 @@ impl Ssh {
             } else {
                 self.credentials(&all, hop, None, None).await?
             };
-            let mut session = self
+            let (mut session, slot) = self
                 .connect(hop, request.trust_host_key.clone(), sessions.last())
                 .await?;
+            forwarded = slot;
             authenticate(&mut session, credentials, &hop.host.name, target).await?;
             sessions.push(session);
         }
@@ -144,6 +157,7 @@ impl Ssh {
             session,
             jumps: sessions,
             host,
+            forwarded,
         })
     }
 
@@ -223,17 +237,19 @@ impl Ssh {
         host: &EffectiveHost,
         trust: Option<String>,
         via: Option<&Handle<HostKeyCheck>>,
-    ) -> Result<Handle<HostKeyCheck>, MethodError> {
+    ) -> Result<(Handle<HostKeyCheck>, Forwarded), MethodError> {
         let name = &host.host.name;
         let address = host.host.address.trim().to_owned();
         let port = host.host.port;
         let pattern = known_hosts_pattern(&address, port);
         let known = self.store.known_hosts(&pattern).await.map_err(internal)?;
         let seen = Arc::new(Mutex::new(None));
+        let forwarded = Forwarded::default();
         let check = HostKeyCheck {
             known: known.iter().map(|(_, f)| f.clone()).collect(),
             trust,
             seen: Arc::clone(&seen),
+            forwarded: Arc::clone(&forwarded),
         };
         let config = Arc::new(client::Config {
             inactivity_timeout: None,
@@ -282,7 +298,7 @@ impl Ssh {
                         .await
                         .map_err(internal)?;
                 }
-                Ok(session)
+                Ok((session, forwarded))
             }
             // Recusada pela conferência: a UI mostra a fingerprint e pergunta.
             (Ok(Err(_)), Some(key)) if !key.trusted => Err(if known.is_empty() {
@@ -366,11 +382,12 @@ struct SeenKey {
     trusted: bool,
 }
 
-/// `client::Handler` que só confere a chave do servidor.
+/// `client::Handler` que confere a chave do servidor e entrega os canais de túnel remoto.
 pub(crate) struct HostKeyCheck {
     known: Vec<String>,
     trust: Option<String>,
     seen: Arc<Mutex<Option<SeenKey>>>,
+    forwarded: Forwarded,
 }
 
 impl client::Handler for HostKeyCheck {
@@ -398,6 +415,31 @@ impl client::Handler for HostKeyCheck {
             trusted,
         });
         std::future::ready(Ok(trusted))
+    }
+
+    fn server_channel_open_forwarded_tcpip(
+        &mut self,
+        channel: russh::Channel<client::Msg>,
+        _connected_address: &str,
+        _connected_port: u32,
+        _originator_address: &str,
+        _originator_port: u32,
+        reply: client::ChannelOpenHandle,
+        _session: &mut client::Session,
+    ) -> impl Future<Output = Result<(), Self::Error>> + Send {
+        let sender = self
+            .forwarded
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone();
+        async move {
+            // Sem túnel remoto esperando, `reply` cai e o servidor recebe recusa.
+            if let Some(sender) = sender {
+                reply.accept().await;
+                let _ = sender.send(channel);
+            }
+            Ok(())
+        }
     }
 }
 
