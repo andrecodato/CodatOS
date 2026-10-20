@@ -68,6 +68,7 @@ pub fn TerminalPanel() -> impl IntoView {
                     </For>
                 </div>
                 <NewMenu />
+                <super::snippets::SnippetMenu />
                 {move || {
                     active_tab
                         .get()

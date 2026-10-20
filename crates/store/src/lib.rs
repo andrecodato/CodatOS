@@ -10,6 +10,7 @@ mod dashboards;
 mod keychain;
 mod methods;
 mod settings;
+mod snippets;
 mod vault;
 mod vault_rpc;
 
@@ -23,6 +24,7 @@ pub use connections::{EffectiveHost, effective};
 pub use connections_rpc::connection_methods;
 pub use keychain::{Keychain, KeychainError, os_keychain};
 pub use methods::methods;
+pub use snippets::snippet_methods;
 pub use vault::{Vault, VaultError};
 pub use vault_rpc::{VaultCollector, vault_methods};
 
