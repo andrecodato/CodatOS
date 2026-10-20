@@ -35,6 +35,8 @@ use zeroize::Zeroizing;
 #[derive(Default)]
 struct SshServer {
     root: PathBuf,
+    /// Recusa o subsistema, como um servidor com o SFTP desligado.
+    no_sftp: bool,
     channels: HashMap<ChannelId, Channel<Msg>>,
 }
 
@@ -68,7 +70,7 @@ impl russh::server::Handler for SshServer {
         session: &mut Session,
     ) -> Result<(), Self::Error> {
         match (name, self.channels.remove(&id)) {
-            ("sftp", Some(channel)) => {
+            ("sftp", Some(channel)) if !self.no_sftp => {
                 session.channel_success(id)?;
                 russh_sftp::server::run(
                     channel.into_stream(),
@@ -321,6 +323,10 @@ impl russh_sftp::server::Handler for SftpServer {
 }
 
 async fn ssh_server(root: PathBuf) -> u16 {
+    ssh_server_with(root, false).await
+}
+
+async fn ssh_server_with(root: PathBuf, no_sftp: bool) -> u16 {
     let host_key = keys::generate(KeyAlgorithm::Ed25519, "servidor").unwrap();
     let config = Arc::new(russh::server::Config {
         keys: vec![host_key],
@@ -336,6 +342,7 @@ async fn ssh_server(root: PathBuf) -> u16 {
             let config = Arc::clone(&config);
             let handler = SshServer {
                 root: root.clone(),
+                no_sftp,
                 ..SshServer::default()
             };
             tokio::spawn(async move {
@@ -875,4 +882,35 @@ async fn pausa_retoma_e_cancela() {
 
     let _ = fs::remove_dir_all(remote);
     let _ = fs::remove_dir_all(local);
+}
+
+#[tokio::test]
+async fn servidor_sem_sftp_falha_sem_travar() {
+    let port = ssh_server_with(temp_dir("sem-sftp"), true).await;
+    let server = core().await;
+    let mut client = Client::connect(&server).await;
+    client
+        .ok(
+            "connections.saveIdentity",
+            json!({"id": "i1", "name": "André", "username": "andre", "password": {"action": "set", "value": "segredo"}}),
+        )
+        .await;
+    client
+        .ok(
+            "connections.saveHost",
+            json!({"id": "h1", "name": "Servidor", "address": "127.0.0.1", "port": port, "identityId": "i1"}),
+        )
+        .await;
+    let r = client.call("sftp.open", json!({"hostId": "h1"})).await;
+    let fingerprint = r["error"]["data"]["detail"].clone();
+    let r = tokio::time::timeout(
+        Duration::from_secs(5),
+        client.call(
+            "sftp.open",
+            json!({"hostId": "h1", "trustHostKey": fingerprint}),
+        ),
+    )
+    .await
+    .expect("sftp.open travou com o subsistema recusado");
+    assert_eq!(r["error"]["data"]["code"], errors::FAILED, "{r}");
 }

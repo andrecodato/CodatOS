@@ -24,6 +24,7 @@ use codatos_protocol::sftp::{
     TransferState, errors,
 };
 use codatos_store::{Store, Vault};
+use russh::ChannelMsg;
 use russh_sftp::client::SftpSession;
 use russh_sftp::client::error::Error as SftpError;
 use russh_sftp::protocol::{FileAttributes, FileType, OpenFlags, StatusCode};
@@ -41,6 +42,8 @@ const CHUNK: usize = 256 * 1024;
 const PROGRESS_EVERY: Duration = Duration::from_millis(250);
 /// De quanto em quanto tempo a sessão confere se a conexão SSH caiu.
 const LIVENESS: Duration = Duration::from_secs(5);
+/// Quanto esperar o servidor aceitar o subsistema `sftp`.
+const SUBSYSTEM_TIMEOUT: Duration = Duration::from_secs(10);
 /// Itens de uma pasta numa listagem e itens apagados por um `remove` recursivo.
 const MAX_ITEMS: usize = 10_000;
 
@@ -231,7 +234,7 @@ impl ChannelMethod for OpenSftpMethod {
 }
 
 async fn start_subsystem(connected: &Connected) -> Result<SftpSession, MethodError> {
-    let channel = connected
+    let mut channel = connected
         .session
         .channel_open_session()
         .await
@@ -240,6 +243,25 @@ async fn start_subsystem(connected: &Connected) -> Result<SftpSession, MethodErr
         .request_subsystem(true, "sftp")
         .await
         .map_err(ssh::connect_failed)?;
+    // Sem esperar a resposta, um servidor sem SFTP deixaria a abertura parada.
+    let reply = tokio::time::timeout(SUBSYSTEM_TIMEOUT, async {
+        loop {
+            match channel.wait().await {
+                Some(ChannelMsg::Success) => return true,
+                Some(ChannelMsg::Failure | ChannelMsg::Close | ChannelMsg::Eof) | None => {
+                    return false;
+                }
+                Some(_) => {}
+            }
+        }
+    })
+    .await;
+    if reply != Ok(true) {
+        return Err(MethodError::new(
+            errors::FAILED,
+            "O servidor não oferece SFTP (subsistema sftp desligado ou ausente)",
+        ));
+    }
     SftpSession::new(channel.into_stream())
         .await
         .map_err(|e| failed(&e))
