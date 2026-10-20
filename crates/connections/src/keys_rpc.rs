@@ -67,7 +67,9 @@ impl Method for KeyMethod {
                             .await
                             .map_err(|_| MethodError::new("key_failed", "Falha ao gerar a chave"))?
                             .map_err(key_error)?;
-                    Ok(json!(self.save(p.id, p.name, &key).await?))
+                    Ok(json!(
+                        save_key(&self.store, &self.vault, p.id, p.name, &key).await?
+                    ))
                 }
                 METHOD_KEY_IMPORT => {
                     let p: ImportKey = params(value)?;
@@ -79,7 +81,9 @@ impl Method for KeyMethod {
                     }
                     let key = keys::import(&text, passphrase.as_deref().map(String::as_str))
                         .map_err(key_error)?;
-                    Ok(json!(self.save(p.id, p.name, &key).await?))
+                    Ok(json!(
+                        save_key(&self.store, &self.vault, p.id, p.name, &key).await?
+                    ))
                 }
                 METHOD_KEY_RENAME => {
                     let p: RenameKey = params(value)?;
@@ -101,38 +105,34 @@ impl Method for KeyMethod {
     }
 }
 
-impl KeyMethod {
-    /// Sela a chave privada no cofre (exige o cofre aberto) e grava.
-    async fn save(
-        &self,
-        id: String,
-        name: String,
-        key: &PrivateKey,
-    ) -> Result<SshKey, MethodError> {
-        let (algorithm, public_key, fingerprint) = keys::describe(key).map_err(key_error)?;
-        let private = keys::to_openssh(key).map_err(key_error)?;
-        let envelope = self.vault.seal(&id, private.as_bytes())?;
-        let sealed = serde_json::to_string(&envelope)
-            .map_err(|_| MethodError::new("key_failed", "Falha ao guardar a chave"))?;
-        let summary = SshKey {
-            id,
-            name,
-            algorithm,
-            public_key,
-            fingerprint,
-        };
-        self.store
-            .insert_key(&summary, &sealed)
-            .await
-            .map_err(|e| {
-                if e.is_constraint() {
-                    MethodError::invalid_params("Já existe uma chave com este id")
-                } else {
-                    internal(e)
-                }
-            })?;
-        Ok(summary)
-    }
+/// Sela a chave privada no cofre (exige o cofre aberto) e grava.
+pub(crate) async fn save_key(
+    store: &Store,
+    vault: &Vault,
+    id: String,
+    name: String,
+    key: &PrivateKey,
+) -> Result<SshKey, MethodError> {
+    let (algorithm, public_key, fingerprint) = keys::describe(key).map_err(key_error)?;
+    let private = keys::to_openssh(key).map_err(key_error)?;
+    let envelope = vault.seal(&id, private.as_bytes())?;
+    let sealed = serde_json::to_string(&envelope)
+        .map_err(|_| MethodError::new("key_failed", "Falha ao guardar a chave"))?;
+    let summary = SshKey {
+        id,
+        name,
+        algorithm,
+        public_key,
+        fingerprint,
+    };
+    store.insert_key(&summary, &sealed).await.map_err(|e| {
+        if e.is_constraint() {
+            MethodError::invalid_params("Já existe uma chave com este id")
+        } else {
+            internal(e)
+        }
+    })?;
+    Ok(summary)
 }
 
 fn check(id: &str, name: &str) -> Result<(), MethodError> {
@@ -170,13 +170,13 @@ fn key_error(error: KeyError) -> MethodError {
 }
 
 #[allow(clippy::needless_pass_by_value)]
-fn internal(error: codatos_store::Error) -> MethodError {
+pub(crate) fn internal(error: codatos_store::Error) -> MethodError {
     tracing::error!(%error, "erro no banco local");
     MethodError::new("store_failed", "Erro no banco local")
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use codatos_protocol::vault::VaultProtection;
     use codatos_store::{Keychain, KeychainError};
@@ -202,7 +202,7 @@ mod tests {
         }
     }
 
-    async fn env(unlocked: bool) -> (Store, Vault) {
+    pub(crate) async fn env(unlocked: bool) -> (Store, Vault) {
         let store = Store::in_memory().await.unwrap();
         let vault = Vault::open(store.clone(), Arc::new(MemoryKeychain::default()))
             .await

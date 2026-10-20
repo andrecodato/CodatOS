@@ -153,6 +153,7 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
                         .map(|(s, v)| {
                             let mut methods = codatos_store::connection_methods(s, v);
                             methods.extend(codatos_connections::key_methods(s, v));
+                            methods.extend(codatos_connections::ssh_config_methods(s, v));
                             methods
                         })
                         .unwrap_or_default(),
