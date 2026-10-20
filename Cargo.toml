@@ -53,6 +53,8 @@ libloading = "0.8.9"
 leptos = { version = "0.8.22", features = ["csr"] }
 nvml-wrapper = "0.13.0"
 # TLS do SO (SChannel no Windows, Security no macOS, OpenSSL no Linux): sem C extra no build do Windows.
+# PTY multiplataforma (ConPTY no Windows) para os terminais locais.
+portable-pty = "0.9.0"
 reqwest = { version = "0.13.5", default-features = false, features = ["json", "native-tls", "query"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
