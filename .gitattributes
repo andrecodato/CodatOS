@@ -25,3 +25,7 @@
 # Documentação conta como documentação nas estatísticas do GitHub
 docs/** linguist-documentation
 vault/** linguist-documentation
+
+# xterm.js embutido na UI (apps/ui/assets/xterm/README.md)
+apps/ui/assets/xterm/*.js linguist-vendored -diff
+apps/ui/assets/xterm/*.css linguist-vendored

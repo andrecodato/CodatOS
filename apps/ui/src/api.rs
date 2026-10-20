@@ -8,15 +8,20 @@
 //! Se a conexão cai, tenta de novo a cada 3 s e refaz as assinaturas. Com a janela ou a aba
 //! escondida, as assinaturas são canceladas no núcleo e voltam quando ela reaparece
 //! (RF-DASH-007): nada é coletado para ninguém ver.
+//!
+//! Terminais usam canais binários no mesmo WebSocket ([`open_channel`]); eles acabam com a
+//! conexão, porque o processo do outro lado morre junto.
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 use std::time::Duration;
 
 use codatos_protocol::api::{
     DEFAULT_PORT, EVENT_METHOD, EventParams, IPC_GET_SESSION_TOKEN, Subscribed, WS_PROTOCOL,
     WS_TOKEN_PROTOCOL_PREFIX,
 };
+use codatos_protocol::channel::{self, Frame};
 use codatos_protocol::rpc::{Id, Outcome, Problem, Request, Response, RpcError};
 use futures_channel::oneshot;
 use leptos::prelude::*;
@@ -24,7 +29,7 @@ use serde_json::{Value, json};
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::{JsFuture, spawn_local};
-use web_sys::{MessageEvent, RequestCredentials, RequestInit, WebSocket};
+use web_sys::{BinaryType, MessageEvent, RequestCredentials, RequestInit, WebSocket};
 
 const RETRY: Duration = Duration::from_secs(3);
 const PING_ID: i64 = 0;
@@ -57,6 +62,16 @@ struct LocalSub {
     remote: Option<String>,
 }
 
+/// O que chega num canal binário aberto por [`open_channel`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ChannelEvent {
+    Data(Vec<u8>),
+    /// O outro lado fechou, ou a conexão com o núcleo caiu. É o último evento.
+    Closed,
+}
+
+type ChannelHandler = Rc<RefCell<dyn FnMut(ChannelEvent)>>;
+
 #[derive(Default)]
 struct State {
     conn: Option<Conn>,
@@ -65,6 +80,12 @@ struct State {
     pending: HashMap<i64, Pending>,
     subs: HashMap<u64, LocalSub>,
     next_sub: u64,
+    channels: HashMap<u32, ChannelHandler>,
+    /// Frames que chegaram antes da resposta que abriu o canal (o processo já escreve
+    /// enquanto a resposta ainda está na fila). A janela de crédito limita o tamanho.
+    early: HashMap<u32, Vec<ChannelEvent>>,
+    /// Canais que a UI fechou: o que ainda chegar deles é descartado.
+    closed: HashSet<u32>,
 }
 
 enum Pending {
@@ -125,6 +146,7 @@ async fn open() -> Result<(), JsValue> {
     };
 
     let ws = WebSocket::new_with_str_sequence(&url, &protocols)?;
+    ws.set_binary_type(BinaryType::Arraybuffer);
 
     let on_open = {
         let ws = ws.clone();
@@ -136,8 +158,11 @@ async fn open() -> Result<(), JsValue> {
         })
     };
     let on_message = Closure::<dyn FnMut(MessageEvent)>::new(move |event: MessageEvent| {
-        if let Some(text) = event.data().as_string() {
+        let data = event.data();
+        if let Some(text) = data.as_string() {
             on_text(&text);
+        } else if data.is_instance_of::<js_sys::ArrayBuffer>() {
+            on_binary(&js_sys::Uint8Array::new(&data).to_vec());
         }
     });
     // `close` vem depois de `error` também, então basta ele para tentar de novo.
@@ -194,6 +219,38 @@ fn on_text(text: &str) {
     }
 }
 
+fn on_binary(bytes: &[u8]) {
+    let Some((id, frame)) = channel::decode(bytes) else {
+        return;
+    };
+    let event = match frame {
+        Frame::Data(data) => ChannelEvent::Data(data.to_vec()),
+        Frame::Close => ChannelEvent::Closed,
+        // Resize e Ack só vão da UI para o núcleo.
+        Frame::Resize { .. } | Frame::Ack(_) => return,
+    };
+    let handler = STATE.with(|s| {
+        let mut s = s.borrow_mut();
+        if s.closed.contains(&id) {
+            if event == ChannelEvent::Closed {
+                s.closed.remove(&id);
+            }
+            return None;
+        }
+        let handler = s.channels.get(&id).cloned();
+        if handler.is_none() {
+            s.early.entry(id).or_default().push(event.clone());
+        } else if event == ChannelEvent::Closed {
+            s.channels.remove(&id);
+        }
+        handler
+    });
+    // Fora do `borrow`: o handler pode mandar frames (Ack) ou fechar outros canais.
+    if let Some(handler) = handler {
+        (handler.borrow_mut())(event);
+    }
+}
+
 fn on_event(event: EventParams) {
     let set = STATE.with(|s| {
         s.borrow()
@@ -242,18 +299,26 @@ fn on_subscribed(key: u64, result: Result<Value, RpcError>) {
 
 fn offline() {
     set_status(CoreStatus::Offline);
-    let pending = STATE.with(|s| {
+    let (pending, channels) = STATE.with(|s| {
         let mut s = s.borrow_mut();
         s.connected = false;
         for sub in s.subs.values_mut() {
             sub.remote = None;
         }
-        std::mem::take(&mut s.pending)
+        s.early.clear();
+        s.closed.clear();
+        (
+            std::mem::take(&mut s.pending),
+            std::mem::take(&mut s.channels),
+        )
     });
     for (_, p) in pending {
         if let Pending::Call(tx) = p {
             let _ = tx.send(Err(offline_error()));
         }
+    }
+    for handler in channels.into_values() {
+        (handler.borrow_mut())(ChannelEvent::Closed);
     }
     set_timeout(
         move || {
@@ -315,6 +380,76 @@ pub async fn call(method: &str, params: Value) -> Result<Value, RpcError> {
         return Err(offline_error());
     }
     rx.await.unwrap_or_else(|_| Err(offline_error()))
+}
+
+/// Abre um canal binário com um método como `terminal.open`. Devolve o número do canal e o
+/// resto da resposta; `handler` recebe os dados e, por último, [`ChannelEvent::Closed`].
+/// Os dados recebidos precisam ser confirmados com [`channel_ack`] para o núcleo mandar mais.
+pub async fn open_channel(
+    method: &str,
+    params: Value,
+    handler: impl FnMut(ChannelEvent) + 'static,
+) -> Result<(u32, Value), RpcError> {
+    let value = call(method, params).await?;
+    let id = value
+        .get("channel")
+        .and_then(Value::as_u64)
+        .and_then(|n| u32::try_from(n).ok())
+        .ok_or_else(|| RpcError::new(-32000, "bad_channel", "Resposta sem canal"))?;
+    let handler: ChannelHandler = Rc::new(RefCell::new(handler));
+    let early = STATE.with(|s| {
+        let mut s = s.borrow_mut();
+        let early = s.early.remove(&id).unwrap_or_default();
+        if !early.contains(&ChannelEvent::Closed) {
+            s.channels.insert(id, Rc::clone(&handler));
+        }
+        early
+    });
+    for event in early {
+        (handler.borrow_mut())(event);
+    }
+    Ok((id, value))
+}
+
+/// Manda bytes (o que foi digitado) pelo canal.
+pub fn channel_send(id: u32, data: &[u8]) {
+    for chunk in data.chunks(channel::MAX_PAYLOAD) {
+        send_frame(id, Frame::Data(chunk));
+    }
+}
+
+/// Novo tamanho do terminal.
+pub fn channel_resize(id: u32, cols: u16, rows: u16) {
+    send_frame(id, Frame::Resize { cols, rows });
+}
+
+/// Confirma `bytes` de dados já consumidos, abrindo a janela de envio do núcleo.
+pub fn channel_ack(id: u32, bytes: u32) {
+    send_frame(id, Frame::Ack(bytes));
+}
+
+/// Fecha o canal; o handler não recebe mais nada.
+pub fn channel_close(id: u32) {
+    let open = STATE.with(|s| {
+        let mut s = s.borrow_mut();
+        let open = s.channels.remove(&id).is_some();
+        if open {
+            s.closed.insert(id);
+        }
+        open
+    });
+    if open {
+        send_frame(id, Frame::Close);
+    }
+}
+
+fn send_frame(id: u32, frame: Frame<'_>) {
+    let bytes = channel::encode(id, frame);
+    STATE.with(|s| {
+        if let Some(conn) = &s.borrow().conn {
+            let _ = conn.ws.send_with_u8_array(&bytes);
+        }
+    });
 }
 
 /// Assina um tópico enquanto o componente atual existir. O sinal começa em `None`
