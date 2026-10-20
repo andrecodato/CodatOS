@@ -3,7 +3,10 @@
 mod api;
 mod app;
 mod components;
+mod connections;
 mod dashboard;
+mod ids;
+mod nav;
 
 fn main() {
     console_error_panic_hook::set_once();
