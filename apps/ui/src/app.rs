@@ -9,6 +9,7 @@ use crate::components::{sidebar::Sidebar, titlebar::Titlebar, topbar::Topbar};
 use crate::connections::Connections;
 use crate::dashboard::Dashboard;
 use crate::nav::{self, Page};
+use crate::terminal::Terminals;
 use crate::vault::{UnlockDialog, Vault, VaultSettings};
 
 #[component]
@@ -19,6 +20,7 @@ pub fn App() -> impl IntoView {
     provide_context(status);
     provide_context(Profile::load(status));
     Vault::provide(status);
+    Terminals::provide();
     let page = nav::page();
 
     view! {

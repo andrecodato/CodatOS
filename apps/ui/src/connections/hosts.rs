@@ -5,6 +5,7 @@ use codatos_protocol::connections::{
     ConnectionId, Connections as List, DEFAULT_SSH_PORT, Host, HostDefaults, HostGroup,
     METHOD_GROUP_DELETE, METHOD_GROUP_SAVE, METHOD_HOST_DELETE, METHOD_HOST_SAVE, Protocol,
 };
+use codatos_protocol::terminal::TerminalTarget;
 use leptos::{prelude::*, task::spawn_local};
 use serde_json::{Map, Value, json};
 
@@ -13,6 +14,7 @@ use super::import::{ExportDialog, ImportDialog};
 use super::ui::{self, BUTTON, DANGER, Dialog, Edit, FIELD, FormError, GHOST, LABEL, PRIMARY};
 use crate::components::icon::{Icon, Svg};
 use crate::ids::new_id;
+use crate::terminal::Terminals;
 
 /// Cores para marcar hosts (as séries de gráfico do design system).
 const COLORS: [&str; 6] = [
@@ -445,6 +447,22 @@ fn HostEditor(
         });
     };
 
+    // Abre o terminal com o host como está salvo no núcleo.
+    let page_tab = expect_context::<RwSignal<super::Tab>>();
+    let connect = move |_| {
+        let (id, name) = draft.with_untracked(|d| (d.id.clone(), d.name.trim().to_owned()));
+        Terminals::current().open(
+            TerminalTarget::Ssh {
+                host_id: id,
+                username: None,
+                password: None,
+                trust_host_key: None,
+            },
+            name,
+        );
+        page_tab.set(super::Tab::Terminal);
+    };
+
     let tab_button = move |value: EditorTab, label: &'static str| {
         view! {
             <button
@@ -486,6 +504,12 @@ fn HostEditor(
                 >
                     <Svg icon=Icon::Star size=18 />
                 </button>
+                {move || (!is_new.get()).then(|| view! {
+                    <button type="button" class=PRIMARY on:click=connect>
+                        <Svg icon=Icon::Terminal size=16 />
+                        "Conectar"
+                    </button>
+                })}
             </header>
             <nav role="tablist" aria-label="Seções do host" class="flex gap-1 border-b border-line px-4 py-2">
                 {tab_button(EditorTab::General, "Geral")}

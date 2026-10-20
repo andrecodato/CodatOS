@@ -13,6 +13,7 @@ use serde_json::json;
 
 use crate::api::{self, CoreStatus};
 use crate::components::icon::{Icon, Svg};
+use crate::terminal::{TerminalPanel, Terminals};
 
 /// Lista do núcleo, compartilhada pelas abas. `None` enquanto carrega.
 #[derive(Debug, Clone, Copy)]
@@ -58,6 +59,7 @@ enum Load {
 enum Tab {
     Hosts,
     Keychain,
+    Terminal,
 }
 
 #[component]
@@ -72,7 +74,13 @@ pub fn Connections(status: ReadSignal<CoreStatus>) -> impl IntoView {
             data.reload();
         }
     });
-    let tab = RwSignal::new(Tab::Hosts);
+    // Volta direto para os terminais se algum estiver aberto.
+    let tab = RwSignal::new(if Terminals::current().tabs.with_untracked(Vec::is_empty) {
+        Tab::Hosts
+    } else {
+        Tab::Terminal
+    });
+    provide_context(tab);
     let load = Memo::new(move |_| {
         data.list.with(|l| match l {
             None => Load::Loading,
@@ -105,6 +113,7 @@ pub fn Connections(status: ReadSignal<CoreStatus>) -> impl IntoView {
                 <nav role="tablist" aria-label="Seções de conexões" class="flex gap-5">
                     {tab_button(Tab::Hosts, Icon::Server, "SSH/SFTP")}
                     {tab_button(Tab::Keychain, Icon::Key, "Chaveiro")}
+                    {tab_button(Tab::Terminal, Icon::Terminal, "Terminal")}
                 </nav>
             </header>
             {move || match load.get() {
@@ -125,6 +134,7 @@ pub fn Connections(status: ReadSignal<CoreStatus>) -> impl IntoView {
                 Load::Ready => match tab.get() {
                     Tab::Hosts => view! { <hosts::Hosts /> }.into_any(),
                     Tab::Keychain => view! { <keychain::Keychain /> }.into_any(),
+                    Tab::Terminal => view! { <TerminalPanel /> }.into_any(),
                 },
             }}
         </section>
