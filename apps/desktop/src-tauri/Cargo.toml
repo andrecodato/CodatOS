@@ -22,6 +22,7 @@ tauri-build.workspace = true
 
 [dependencies]
 codatos-collectors.workspace = true
+codatos-connections.workspace = true
 codatos-core.workspace = true
 codatos-protocol.workspace = true
 codatos-store.workspace = true

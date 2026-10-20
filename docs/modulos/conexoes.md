@@ -112,4 +112,5 @@ As três primeiras seguem a proposta padrão no M2.
 - **Terminal**: xterm.js empacotado na UI (sem CDN), ligado ao Leptos por `wasm-bindgen`; dados nos [canais binários](../06-api-e-protocolos.md#canais-binários-terminal-e-sftp) do mesmo WebSocket `/rpc`.
 - **Terminais locais**: `portable-pty` (ConPTY no Windows); WSL por `wsl.exe -d <distro>` e Docker por `docker exec -it`.
 - **Importação**: só `~/.ssh/config` no M2; PuTTY, MobaXterm e Termius depois.
+- **Chaves SSH** (crate `codatos-connections`): `ssh-key` na mesma versão que o `russh` fixa. Gera Ed25519, ECDSA P-256/P-384 e RSA 4096; importa OpenSSH e PuTTY (`.ppk` v2/v3). PEM antigo (PKCS#1, PKCS#8, SEC1) é recusado com a dica `ssh-keygen -p -f chave`, que o converte para OpenSSH. A chave é guardada **sem a passphrase original**, selada pelo cofre: quem protege é o cofre, e a passphrase não precisa ser digitada a cada conexão. A chave privada nunca volta para a UI; a pública vai em `connections.list`, pronta para copiar.
 - **Status online**: verificação TCP só enquanto a lista de hosts estiver na tela, para o repouso continuar perto do M1.

@@ -40,6 +40,15 @@ pub enum Error {
     Json(#[from] serde_json::Error),
 }
 
+impl Error {
+    /// Violação de chave estrangeira ou de unicidade: erro do cliente, não do banco.
+    #[must_use]
+    pub fn is_constraint(&self) -> bool {
+        matches!(self, Self::Query(sqlx::Error::Database(db))
+            if db.is_foreign_key_violation() || db.is_unique_violation())
+    }
+}
+
 /// Banco aberto. Clonar é barato (o pool é compartilhado).
 #[derive(Debug, Clone)]
 pub struct Store {

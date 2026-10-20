@@ -4,6 +4,7 @@ members = [
   "apps/desktop/src-tauri",
   "apps/ui",
   "crates/collectors",
+  "crates/connections",
   "crates/core",
   "crates/protocol",
   "crates/sensors",
@@ -25,6 +26,7 @@ publish = false
 # `dep = { workspace = true }`.
 [workspace.dependencies]
 codatos-collectors = { path = "crates/collectors" }
+codatos-connections = { path = "crates/connections" }
 codatos-core = { path = "crates/core" }
 codatos-protocol = { path = "crates/protocol" }
 codatos-sensors = { path = "crates/sensors" }
@@ -56,6 +58,8 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 sha2 = "0.10.9"
 # Sem SQLCipher por enquanto: no M2 só os segredos são cifrados, pelo cofre (Q-37).
+# Formato das chaves SSH; a mesma versão que o russh fixa, para trocar chaves sem conversão.
+ssh-key = { version = "=0.7.0-rc.11", default-features = false, features = ["std", "ed25519", "p256", "p384", "rsa", "encryption", "ppk", "getrandom"] }
 sqlx = { version = "0.9.0", default-features = false, features = ["macros", "migrate", "runtime-tokio", "sqlite-bundled"] }
 subtle = "2.6.1"
 sysinfo = { version = "0.39.6", default-features = false, features = ["system", "disk", "network", "component"] }
