@@ -515,16 +515,12 @@ fn temp_dir(name: &str) -> PathBuf {
     dir
 }
 
+/// Contador do processo: o relógio do macOS só tem microssegundos, e dois
+/// testes em paralelo chegavam a pegar a mesma pasta.
 fn rand_suffix() -> u64 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    u64::try_from(
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-            % 1_000_000_000,
-    )
-    .unwrap()
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    NEXT.fetch_add(1, Ordering::Relaxed)
 }
 
 /// Conteúdo que não se repete a cada bloco, para pegar pedaço fora do lugar.
