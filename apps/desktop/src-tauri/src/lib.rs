@@ -167,6 +167,7 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
                         as std::sync::Arc<dyn codatos_core::Collector>
                 }))
                 .collect(),
+            channel_methods: Vec::new(),
         };
         match codatos_core::start(config).await {
             // O servidor para quando o processo termina.

@@ -26,6 +26,7 @@ use tower_http::services::{ServeDir, ServeFile};
 use tower_http::set_header::SetResponseHeaderLayer;
 
 use crate::auth::Auth;
+use crate::channel::{ChannelMethod, Outgoing};
 use crate::collector::Collector;
 use crate::guard::{self, Allowed};
 use crate::hub::Hub;
@@ -59,6 +60,8 @@ pub struct ServerConfig {
     pub collectors: Vec<Arc<dyn Collector>>,
     /// Métodos JSON-RPC a mais (preferências, dashboards, ações).
     pub methods: Vec<Arc<dyn Method>>,
+    /// Métodos que abrem canais binários (terminal, SFTP).
+    pub channel_methods: Vec<Arc<dyn ChannelMethod>>,
 }
 
 impl Default for ServerConfig {
@@ -69,6 +72,7 @@ impl Default for ServerConfig {
             extra_origins: Vec::new(),
             collectors: Vec::new(),
             methods: Vec::new(),
+            channel_methods: Vec::new(),
         }
     }
 }
@@ -131,7 +135,11 @@ pub async fn start(config: ServerConfig) -> Result<RunningServer, Error> {
     let csp = csp(config.ui_dir.as_deref());
     let state = AppState {
         auth: Arc::clone(&auth),
-        hub: Arc::new(Hub::new(&config.collectors, &config.methods)),
+        hub: Arc::new(Hub::new(
+            &config.collectors,
+            &config.methods,
+            &config.channel_methods,
+        )),
     };
     let app = router(state, allowed, config.ui_dir.as_deref(), &csp);
 
@@ -270,13 +278,17 @@ async fn rpc_socket(
         .on_upgrade(move |socket| serve_socket(socket, state.hub))
 }
 
-/// Lê pedidos e responde; respostas e eventos das assinaturas saem pela mesma fila.
+/// Lê pedidos e responde; respostas, eventos e frames dos canais saem pela mesma fila.
 async fn serve_socket(socket: WebSocket, hub: Arc<Hub>) {
     let (mut sink, mut stream) = socket.split();
-    let (out, mut outbox) = mpsc::channel::<String>(OUTBOX);
+    let (out, mut outbox) = mpsc::channel::<Outgoing>(OUTBOX);
     let writer = tokio::spawn(async move {
-        while let Some(json) = outbox.recv().await {
-            if sink.send(Message::Text(json.into())).await.is_err() {
+        while let Some(message) = outbox.recv().await {
+            let message = match message {
+                Outgoing::Text(json) => Message::Text(json.into()),
+                Outgoing::Binary(bytes) => Message::Binary(bytes.into()),
+            };
+            if sink.send(message).await.is_err() {
                 break;
             }
         }
@@ -290,16 +302,17 @@ async fn serve_socket(socket: WebSocket, hub: Arc<Hub>) {
                     continue;
                 };
                 let json = serde_json::to_string(&response).expect("Response sempre serializa");
-                if out.send(json).await.is_err() {
+                if out.send(Outgoing::Text(json)).await.is_err() {
                     break;
                 }
             }
+            Message::Binary(bytes) => connection.handle_binary(&bytes).await,
             Message::Close(_) => break,
-            // Frames binários (terminal/SFTP) chegam com os canais; ping/pong o axum responde.
+            // Ping/pong o axum responde.
             _ => {}
         }
     }
-    // Encerra as assinaturas antes do escritor, que acaba quando a fila fecha.
+    // Encerra assinaturas e canais antes do escritor, que acaba quando a fila fecha.
     drop(connection);
     drop(out);
     let _ = writer.await;

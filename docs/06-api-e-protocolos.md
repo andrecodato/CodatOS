@@ -93,6 +93,13 @@ kind: 0 = dados · 1 = resize (cols,rows u16) · 2 = fechar · 3 = janela/ack (c
 
 Controle de fluxo por janela de crédito evita que uma saída enorme (`cat` de log gigante) trave a UI ou o relay.
 
+Implementado em `codatos_protocol::channel` e no núcleo (`ChannelMethod`):
+
+- O canal é aberto por um método JSON-RPC (ex.: `terminal.open`). A resposta traz `"channel": n`, número único dentro da conexão. Cada conexão tem no máximo 32 canais.
+- O cabeçalho tem 5 bytes, com `channel` em big-endian. `resize` leva `cols` e `rows` (`u16` big-endian). `ack` leva um `u32` big-endian com os bytes de dados já consumidos pela UI.
+- O núcleo manda até 256 KiB de dados por canal sem confirmação, em frames de até 64 KiB. Depois disso, espera os `ack`s. Um `ack` não abre a janela além do tamanho inicial.
+- `fechar` vale nos dois sentidos. Frames de canais desconhecidos ou já fechados são ignorados. Fechar o WebSocket fecha todos os canais da conexão.
+
 ## API da nuvem (REST)
 
 Base: `https://api.codatos.dev/v1`. Autenticação: `Authorization: Bearer <access token>` (15 min) + refresh token rotativo.
