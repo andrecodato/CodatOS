@@ -73,7 +73,7 @@ Regras das assinaturas:
 | Projetos | `projects.list`, `projects.open`, `projects.roots.save` |
 | Conexões | `connections.list` (grupos, hosts e identidades, sem segredos), `connections.saveHost/deleteHost`, `connections.saveGroup/deleteGroup` (filhos sobem para o pai), `connections.saveIdentity/deleteIdentity` (`password`: `keep`/`clear`/`set`; senha nova exige o cofre aberto e nunca volta à UI), `connections.importSshConfig` (`text` opcional; sem ele lê o `~/.ssh/config`) e `connections.exportSshConfig` (devolve o texto); `keys.generate` (`ed25519`/`ecdsaP256`/`ecdsaP384`/`rsa4096`), `keys.import` (OpenSSH ou PuTTY, com `passphrase` opcional), `keys.rename`, `keys.delete` (a chave pública vem em `connections.list`); depois `knownHosts.*`, `snippets.*`, `tunnels.*` |
 | Terminal | `terminal.open(hostId \| local \| wsl \| docker)` → `channel`, `terminal.resize`, `terminal.close` |
-| SFTP | `sftp.open`, `sftp.list`, `sftp.mkdir/rename/remove/chmod`, `sftp.transfer` → `channel` |
+| SFTP | `sftp.open` → `channel` e `session`; `sftp.list`, `sftp.mkdir/rename/remove/chmod`, `sftp.transfer` (fila por sessão) e `sftp.transferControl` (`pause`/`resume`/`cancel`) |
 | Financeiro | `finance.accounts.*`, `finance.transactions.*`, `finance.import`, `finance.summary` |
 | Tarefas | `tasks.*`, `taskProjects.*` |
 | Integrações | `weather.get`, `weather.searchCity`, `calendar.sources.*` |
@@ -100,7 +100,7 @@ Implementado em `codatos_protocol::channel` e no núcleo (`ChannelMethod`):
 - O núcleo manda até 256 KiB de dados por canal sem confirmação, em frames de até 64 KiB. Depois disso, espera os `ack`s. Um `ack` não abre a janela além do tamanho inicial.
 - `fechar` vale nos dois sentidos. Frames de canais desconhecidos ou já fechados são ignorados. Fechar o WebSocket fecha todos os canais da conexão.
 
-Métodos que abrem canais: `terminal.open` ([terminais locais, WSL, Docker e SSH](modulos/conexoes.md#decisões-técnicas-do-m2)).
+Métodos que abrem canais: `terminal.open` ([terminais locais, WSL, Docker e SSH](modulos/conexoes.md#decisões-técnicas-do-m2)) e `sftp.open` (a sessão SFTP vive enquanto o canal estiver aberto; pelo canal vem o andamento das transferências, um JSON por linha).
 
 ## API da nuvem (REST)
 
