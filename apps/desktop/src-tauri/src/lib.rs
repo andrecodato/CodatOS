@@ -138,6 +138,10 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
         };
         let terminal =
             codatos_connections::OpenTerminalMethod::new(store.clone().zip(vault.clone()));
+        let sftp = store
+            .as_ref()
+            .zip(vault.as_ref())
+            .map(|(s, v)| codatos_connections::sftp_methods(s, v));
         let config = ServerConfig {
             port: DEFAULT_PORT,
             ui_dir,
@@ -156,6 +160,9 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
                             let mut methods = codatos_store::connection_methods(s, v);
                             methods.extend(codatos_connections::key_methods(s, v));
                             methods.extend(codatos_connections::ssh_config_methods(s, v));
+                            if let Some((_, sftp)) = &sftp {
+                                methods.extend(sftp.iter().cloned());
+                            }
                             methods
                         })
                         .unwrap_or_default(),
@@ -169,7 +176,11 @@ fn start_core(app: AppHandle, delay: std::time::Duration) {
                         as std::sync::Arc<dyn codatos_core::Collector>
                 }))
                 .collect(),
-            channel_methods: vec![std::sync::Arc::new(terminal)],
+            channel_methods: std::iter::once(
+                std::sync::Arc::new(terminal) as std::sync::Arc<dyn codatos_core::ChannelMethod>
+            )
+            .chain(sftp.map(|(open, _)| open))
+            .collect(),
         };
         match codatos_core::start(config).await {
             // O servidor para quando o processo termina.

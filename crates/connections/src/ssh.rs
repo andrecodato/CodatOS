@@ -41,14 +41,37 @@ pub(crate) struct Ssh {
     pub vault: Vault,
 }
 
-/// Pedido de sessão, já lido do `terminal.open`.
-pub(crate) struct Request {
+/// Com quem e como entrar: do `terminal.open` ou do `sftp.open`.
+pub(crate) struct Login {
     pub host_id: String,
     pub username: Option<String>,
     pub password: Option<Zeroizing<String>>,
     pub trust_host_key: Option<String>,
+}
+
+/// Pedido de shell, já lido do `terminal.open`.
+pub(crate) struct Request {
+    pub login: Login,
     pub cols: u16,
     pub rows: u16,
+}
+
+/// Sessão autenticada com o destino e os jump hosts por onde ela passa.
+pub(crate) struct Connected {
+    pub session: Handle<HostKeyCheck>,
+    pub jumps: Vec<Handle<HostKeyCheck>>,
+    pub host: EffectiveHost,
+}
+
+impl Connected {
+    /// Do destino para fora: cada jump host só cai depois de quem passa por ele.
+    pub(crate) async fn disconnect(self) {
+        for session in std::iter::once(self.session).chain(self.jumps.into_iter().rev()) {
+            let _ = session
+                .disconnect(Disconnect::ByApplication, "", "pt-BR")
+                .await;
+        }
+    }
 }
 
 impl Ssh {
@@ -59,8 +82,37 @@ impl Ssh {
         request: Request,
         channel: Channel,
     ) -> Result<Value, MethodError> {
+        let connected = self.connect_host(request.login).await?;
+        let ssh_channel = connected
+            .session
+            .channel_open_session()
+            .await
+            .map_err(connect_failed)?;
+        ssh_channel
+            .request_pty(
+                true,
+                "xterm-256color",
+                u32::from(request.cols.clamp(10, 1000)),
+                u32::from(request.rows.clamp(2, 500)),
+                0,
+                0,
+                &[],
+            )
+            .await
+            .map_err(connect_failed)?;
+        ssh_channel
+            .request_shell(true)
+            .await
+            .map_err(connect_failed)?;
+        let title = connected.host.host.name.clone();
+        tokio::spawn(pump(connected, ssh_channel, channel));
+        Ok(json!({ "title": title }))
+    }
+
+    /// Conecta pelos jump hosts e autentica em cada salto, até o destino.
+    pub(crate) async fn connect_host(&self, request: Login) -> Result<Connected, MethodError> {
         let all = self.store.connections().await.map_err(internal)?;
-        let hops = chain(&all, &request.host_id)?;
+        let mut hops = chain(&all, &request.host_id)?;
         let mut sessions: Vec<Handle<HostKeyCheck>> = Vec::with_capacity(hops.len());
         for (i, hop) in hops.iter().enumerate() {
             let target = i + 1 == hops.len();
@@ -83,34 +135,16 @@ impl Ssh {
             sessions.push(session);
         }
         let session = sessions.pop().expect("a cadeia tem ao menos o destino");
-        let host = hops.last().expect("a cadeia tem ao menos o destino");
-
-        let ssh_channel = session
-            .channel_open_session()
-            .await
-            .map_err(connect_failed)?;
-        ssh_channel
-            .request_pty(
-                true,
-                "xterm-256color",
-                u32::from(request.cols.clamp(10, 1000)),
-                u32::from(request.rows.clamp(2, 500)),
-                0,
-                0,
-                &[],
-            )
-            .await
-            .map_err(connect_failed)?;
-        ssh_channel
-            .request_shell(true)
-            .await
-            .map_err(connect_failed)?;
+        let host = hops.pop().expect("a cadeia tem ao menos o destino");
         // Só para ordenar por "usado por último"; não impede a sessão.
         if let Err(error) = self.store.touch_host(&host.host.id).await {
             tracing::warn!(%error, "não foi possível marcar o host como usado");
         }
-        tokio::spawn(pump(session, sessions, ssh_channel, channel));
-        Ok(json!({ "title": host.host.name }))
+        Ok(Connected {
+            session,
+            jumps: sessions,
+            host,
+        })
     }
 
     /// Usuário, chave e senha: do pedido primeiro, depois da identidade (decifrados agora).
@@ -333,7 +367,7 @@ struct SeenKey {
 }
 
 /// `client::Handler` que só confere a chave do servidor.
-struct HostKeyCheck {
+pub(crate) struct HostKeyCheck {
     known: Vec<String>,
     trust: Option<String>,
     seen: Arc<Mutex<Option<SeenKey>>>,
@@ -449,8 +483,7 @@ async fn authenticate(
 
 /// Liga o shell remoto ao canal até um dos lados acabar.
 async fn pump(
-    session: Handle<HostKeyCheck>,
-    jumps: Vec<Handle<HostKeyCheck>>,
+    connected: Connected,
     ssh_channel: russh::Channel<client::Msg>,
     mut channel: Channel,
 ) {
@@ -508,17 +541,12 @@ async fn pump(
         let _ = output.await;
     }
     let _ = write.close().await;
-    // Do destino para fora: cada jump host só cai depois de quem passa por ele.
-    for session in std::iter::once(session).chain(jumps.into_iter().rev()) {
-        let _ = session
-            .disconnect(Disconnect::ByApplication, "", "pt-BR")
-            .await;
-    }
+    connected.disconnect().await;
     channel.sender.close().await;
 }
 
 #[allow(clippy::needless_pass_by_value)]
-fn connect_failed(error: russh::Error) -> MethodError {
+pub(crate) fn connect_failed(error: russh::Error) -> MethodError {
     MethodError::new(
         errors::CONNECT_FAILED,
         format!("Falha na conexão SSH: {error}"),

@@ -8,6 +8,7 @@ pub mod connections;
 pub mod dashboard;
 pub mod projects;
 pub mod rpc;
+pub mod sftp;
 pub mod system;
 pub mod terminal;
 pub mod vault;

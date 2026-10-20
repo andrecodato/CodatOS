@@ -59,10 +59,12 @@ impl ChannelMethod for OpenTerminalMethod {
                     MethodError::new("vault_absent", "Banco local ou cofre indisponível")
                 })?;
                 let request = ssh::Request {
-                    host_id,
-                    username,
-                    password: password.map(Zeroizing::new),
-                    trust_host_key,
+                    login: ssh::Login {
+                        host_id,
+                        username,
+                        password: password.map(Zeroizing::new),
+                        trust_host_key,
+                    },
                     cols: p.cols,
                     rows: p.rows,
                 };
