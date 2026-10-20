@@ -7,6 +7,7 @@ use serde_json::Value;
 
 use crate::api;
 use crate::components::icon::{Icon, Svg};
+use crate::vault::Vault;
 
 pub const FIELD: &str = "w-full rounded-md border border-line bg-input px-3 py-2 text-sm placeholder:text-subtle focus:outline-none";
 pub const LABEL: &str = "block text-xs text-muted";
@@ -31,8 +32,8 @@ impl<T> Edit<T> {
     }
 }
 
-/// Chama um método do núcleo. O erro já vem como frase para mostrar; cofre trancado ou
-/// ausente vira um pedido para abrir o cofre.
+/// Chama um método do núcleo. O erro já vem como frase para mostrar; cofre trancado abre o
+/// diálogo de desbloqueio e cofre ausente aponta para Configurações.
 pub async fn call(method: &str, params: &impl Serialize) -> Result<Value, String> {
     call_coded(method, params)
         .await
@@ -46,10 +47,14 @@ pub async fn call_coded(method: &str, params: &impl Serialize) -> Result<Value, 
         let code = e.data.as_ref().map(|p| p.code.clone()).unwrap_or_default();
         let message = match code.as_str() {
             "vault_locked" => {
-                "O cofre está trancado. Desbloqueie o cofre para guardar senhas e chaves."
-                    .to_owned()
+                if let Some(vault) = Vault::current() {
+                    vault.ask_unlock();
+                }
+                "O cofre está trancado. Desbloqueie e tente de novo.".to_owned()
             }
-            "vault_absent" => "Crie o cofre antes de guardar senhas e chaves.".to_owned(),
+            "vault_absent" => {
+                "Crie o cofre em Configurações antes de guardar senhas e chaves.".to_owned()
+            }
             _ => e.message,
         };
         (code, message)

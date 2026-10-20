@@ -5,7 +5,7 @@
 mod hosts;
 mod import;
 mod keychain;
-mod ui;
+pub(crate) mod ui;
 
 use codatos_protocol::connections::{Connections as List, METHOD_CONNECTIONS_LIST};
 use leptos::{prelude::*, task::spawn_local};
